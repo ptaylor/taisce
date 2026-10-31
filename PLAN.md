@@ -7,9 +7,9 @@
 > Priorities in this plan are the ones in `REQUIREMENTS.md`: unmarked = **P1**,
 > then **P2**, **P3**, **P4**.
 
-> **Status:** P1 (milestones M1–M6), P2 (folders) and P3 (recents, search, the
-> guide) are implemented — see `AGENTS.md` §Status for the gaps that remain. P4
-> is not started.
+> **Status:** P1 (milestones M1–M6), P2 (folders), P3 (recents, search, the
+> guide) and P4 (undo, pasted images) are implemented — see `AGENTS.md` §Status
+> for the gaps that remain.
 
 ## 0. The two answers the requirements ask for
 

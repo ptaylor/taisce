@@ -16,17 +16,21 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 ## Status
 
-**P1–P3 implemented, not yet published.** Sign-in (PKCE), folders with nesting
-and breadcrumb navigation, rendered Markdown, source-preserving in-place editing
-with autosave, interactive task lists, new files and folders, recent files,
-filename search, the `docs/` guide, the icon set and `publish.sh` all exist and
-are tested. The site has not been published to Pages — the first `./publish.sh`
-is a decision, not a step to take casually.
+**All four phases implemented, not yet published.** Sign-in (PKCE), folders with
+nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
+editing with autosave, interactive task lists, new files and folders, recent
+files, filename search, undo/redo with a configurable depth, pasted images, the
+`docs/` guide, the icon set and `publish.sh` all exist and are tested. The site
+has not been published to Pages — the first `./publish.sh` is a decision, not a
+step to take casually.
 
-Known gaps, in requirement priority order:
+Known gaps:
 
-- **P4** undo, and pasting an image into the note.
 - No offline write queue: a save while offline errors and keeps the buffer.
+- Images are fetched one by one with the user's token; there is no thumbnail or
+  lazy-load strategy beyond object-URL caching for the session.
+- Undo steps are per note and reset on reload, by design — they are a typing
+  aid, not a version history.
 
 ## Commands
 
@@ -60,6 +64,8 @@ served.
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
 | `js/recents.js` | Recent ordering, filename search, the recent-count preference. Pure. |
+| `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
+| `js/images.js` | Asset naming, the `assets/` location, image-link resolution. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
@@ -284,6 +290,13 @@ Rules:
   re-rendering the document from a parsed tree.
 - **The Markdown you type is the UI.** No toolbar is required to make a heading,
   a list or bold text. Any affordance added must stay optional.
+- **Undo is source ranges, not snapshots.** `js/history.js` records
+  `{start, before, after}`; applying ops in reverse keeps offsets valid. Never
+  swap this for whole-document snapshots of every keystroke.
+- **Images are uploaded before they are linked.** A link to a picture that
+  failed to upload is worse than no link. Relative image sources are parked on a
+  blank pixel until the authenticated fetch resolves, or the browser logs a 404
+  for a path the web server does not have.
 - **Nothing renders unsanitised.** `renderMarkdown` is the only path to
   `innerHTML`; a note can come from someone else's Dropbox.
 - **Colours live in `:root`, built on St Patrick's Blue.** `#23297a`

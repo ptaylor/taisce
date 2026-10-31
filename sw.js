@@ -10,6 +10,8 @@ const SHELL = [
   './js/dropbox.js',
   './js/editor.js',
   './js/errors.js',
+  './js/history.js',
+  './js/images.js',
   './js/markdown.js',
   './js/mock.js',
   './js/paths.js',

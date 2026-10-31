@@ -1,7 +1,15 @@
-import { parseBlocks, applyBlockEdit, setTaskChecked } from './blocks.js';
+import { parseBlocks, applyBlockEdit, setTaskChecked, taskStates } from './blocks.js';
+import { createHistory } from './history.js';
 import { renderMarkdown } from './markdown.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
+
+// A relative image is in Dropbox, not on this web server. Point the element at
+// a blank pixel first, or the browser requests the path from the server and
+// logs a 404 before hydration replaces it.
+const BLANK_PIXEL =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const ABSOLUTE_URL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
 function autosize(textarea) {
   textarea.style.height = 'auto';
@@ -18,25 +26,52 @@ function nextMarker(marker) {
  * Rendered Markdown, edited in place. A block shows its source only while it
  * has the caret; leaving it re-renders from the source, so typing `## ` turns
  * the block into a heading and there is no toolbar to learn.
+ *
+ * History records source-range operations, not snapshots: one entry per block
+ * edit session, one per tick, one per structural change.
  */
-export function createEditor({ container, onChange = () => {}, onStatus = () => {} }) {
+export function createEditor({
+  container,
+  onChange = () => {},
+  onStatus = () => {},
+  onHistory = () => {},
+  resolveImage,
+  onPasteImage,
+  undoLimit = 50,
+}) {
   let text = '';
   let editing = -1;
   let editBlock = null;
   const edits = new Map();
+  const history = createHistory(undoLimit);
 
-  function wireCheckboxes(scope, blockIndex) {
-    const states = taskStatesOf(blockIndex);
-    scope.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
-      if (i >= states.length) {
-        box.removeAttribute('data-item');
-        return;
-      }
-      box.disabled = false;
-      box.dataset.item = String(i);
-      box.dataset.block = String(blockIndex);
-      box.setAttribute('aria-label', `Task ${i + 1}`);
-    });
+  const notifyHistory = () => onHistory({ canUndo: history.canUndo(), canRedo: history.canRedo() });
+
+  function requireNewImage(src) {
+    if (!resolveImage) return null;
+    return Promise.resolve(resolveImage(src)).catch(() => null);
+  }
+
+  // Images live in Dropbox, not on the web server, so each one is fetched and
+  // swapped for an object URL after the block is rendered.
+  function hydrateImages(scope) {
+    if (!resolveImage) return;
+    for (const image of scope.querySelectorAll('img')) {
+      const src = image.dataset.src;
+      if (!src) continue;
+      requireNewImage(src).then((url) => {
+        if (url && image.isConnected) image.src = url;
+      });
+    }
+  }
+
+  function parkRelativeImages(scope) {
+    for (const image of scope.querySelectorAll('img[src]')) {
+      const src = image.getAttribute('src');
+      if (!src || ABSOLUTE_URL.test(src)) continue;
+      image.dataset.src = src;
+      image.src = BLANK_PIXEL;
+    }
   }
 
   function taskStatesOf(blockIndex) {
@@ -69,7 +104,18 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
         el.className = `block ${block.type}`;
         el.dataset.index = String(index);
         el.innerHTML = renderMarkdown(block.source);
-        wireCheckboxes(el, index);
+        parkRelativeImages(el);
+
+        const states = taskStatesOf(index);
+        el.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
+          if (i >= states.length) return;
+          box.disabled = false;
+          box.dataset.item = String(i);
+          box.dataset.block = String(index);
+          box.setAttribute('aria-label', `Task ${i + 1}`);
+        });
+
+        hydrateImages(el);
         container.appendChild(el);
       });
     }
@@ -80,7 +126,9 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
   function setText(next) {
     text = next;
     edits.clear();
+    history.clear();
     render();
+    notifyHistory();
   }
 
   function beginEdit(blockEl) {
@@ -88,6 +136,7 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
 
     const index = Number(blockEl.dataset.index);
     const block = parseBlocks(text)[index] || { start: 0, end: 0, source: '', type: 'paragraph' };
+    const before = block.source;
 
     const textarea = document.createElement('textarea');
     textarea.className = 'src';
@@ -109,6 +158,15 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
+    const commit = () => {
+      if (editing !== index) return;
+      if (span.source !== before) {
+        history.record({ start: span.start, before, after: span.source });
+        notifyHistory();
+      }
+      render();
+    };
+
     textarea.addEventListener('input', () => {
       const next = applyBlockEdit(text, span, textarea.value);
       if (next === text) return;
@@ -121,9 +179,7 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
       onChange(text);
     });
 
-    textarea.addEventListener('blur', () => {
-      if (editing === index) render();
-    });
+    textarea.addEventListener('blur', commit);
 
     textarea.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
@@ -133,8 +189,8 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
       }
 
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-        const before = textarea.value.slice(0, textarea.selectionStart);
-        const line = before.slice(before.lastIndexOf('\n') + 1);
+        const beforeCaret = textarea.value.slice(0, textarea.selectionStart);
+        const line = beforeCaret.slice(beforeCaret.lastIndexOf('\n') + 1);
         const match = line.match(LIST_PREFIX);
         if (match) {
           event.preventDefault();
@@ -162,10 +218,14 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
     const block = parseBlocks(text)[index];
     if (!block) return;
 
-    const before = text.slice(0, block.start).replace(/\n+$/, '');
-    const after = text.slice(block.end).replace(/^\n+/, '');
-    text = [before, after].filter(Boolean).join('\n\n');
+    const before = text;
+    const head = text.slice(0, block.start).replace(/\n+$/, '');
+    const tail = text.slice(block.end).replace(/^\n+/, '');
+    text = [head, tail].filter(Boolean).join('\n\n');
+
+    history.record({ start: 0, before, after: text });
     edits.clear();
+    notifyHistory();
     onStatus('editing');
     onChange(text);
     render();
@@ -183,13 +243,60 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
     const next = setTaskChecked(text, block, itemIndex, box.checked);
     if (next === text) return;
 
+    const before = text;
     text = next;
+    const position = before.split('').findIndex((char, i) => char !== text[i]);
+    if (position >= 0) {
+      history.record({ start: position, before: before[position], after: text[position] });
+      notifyHistory();
+    }
+
     const updated = parseBlocks(text)[blockIndex];
     edits.set(blockIndex, { source: updated.source, type: updated.type });
     onStatus('editing');
     onChange(text);
     render();
   }
+
+  function insertSnippet(snippet) {
+    const textarea = container.querySelector('textarea.src');
+    if (textarea) {
+      const at = textarea.selectionStart ?? textarea.value.length;
+      textarea.setRangeText(snippet, at, textarea.selectionEnd ?? at, 'end');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      return;
+    }
+
+    const before = text;
+    const joiner = before === '' ? '' : before.endsWith('\n') ? '\n' : '\n\n';
+    const addition = `${joiner}${snippet}\n`;
+    text = before + addition;
+    history.record({ start: before.length, before: '', after: addition });
+    notifyHistory();
+    onStatus('editing');
+    onChange(text);
+    render();
+  }
+
+  async function insertPastedImage(file) {
+    if (!onPasteImage) return;
+    onStatus('saving');
+    try {
+      const snippet = await onPasteImage(file);
+      if (!snippet) throw new Error('the image could not be uploaded');
+      insertSnippet(snippet);
+    } catch (error) {
+      onStatus('error', error.message || 'image upload failed');
+    }
+  }
+
+  container.addEventListener('paste', (event) => {
+    const files = [...(event.clipboardData?.files || [])];
+    const image = files.find((file) => file.type.startsWith('image/'));
+    if (!image) return;
+    event.preventDefault();
+    void insertPastedImage(image);
+  });
 
   container.addEventListener('click', (event) => {
     const box = event.target.closest('input[type="checkbox"][data-item]');
@@ -207,10 +314,53 @@ export function createEditor({ container, onChange = () => {}, onStatus = () => 
     if (block) beginEdit(block);
   });
 
-  return {    setText,
+  function undo() {
+    if (editing !== -1) return false;
+    const op = history.undo();
+    if (!op) return false;
+    text = text.slice(0, op.start) + op.before + text.slice(op.start + op.after.length);
+    onChange(text);
+    render();
+    notifyHistory();
+    return true;
+  }
+
+  function redo() {
+    if (editing !== -1) return false;
+    const op = history.redo();
+    if (!op) return false;
+    text = text.slice(0, op.start) + op.after + text.slice(op.start + op.before.length);
+    onChange(text);
+    render();
+    notifyHistory();
+    return true;
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+    if (editing !== -1) return; // the textarea's own undo is the right one there
+
+    const key = event.key.toLowerCase();
+    if (key === 'z' && !event.shiftKey) {
+      if (undo()) event.preventDefault();
+    } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+      if (redo()) event.preventDefault();
+    }
+  });
+
+  return {
+    setText,
     render,
     text: () => text,
     edits: () => [...edits.entries()].map(([index, edit]) => ({ index, ...edit })),
     isEditing: () => editing !== -1,
+    undo,
+    redo,
+    canUndo: () => history.canUndo(),
+    canRedo: () => history.canRedo(),
+    setUndoLimit(limit) {
+      history.setLimit(limit);
+      notifyHistory();
+    },
   };
 }

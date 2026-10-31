@@ -154,6 +154,22 @@ export class DropboxProvider {
     return { rev: meta.rev };
   }
 
+  /** Upload bytes without ever renaming: an image must not silently land elsewhere. */
+  async uploadFile(path, blob) {
+    const res = await this.content(
+      'files/upload',
+      { path, mode: { '.tag': 'add' }, autorename: false, mute: true },
+      blob,
+    );
+    const meta = await res.json();
+    return { path: meta.path_lower, rev: meta.rev };
+  }
+
+  async readBlob(path) {
+    const res = await this.content('files/download', { path });
+    return res.blob();
+  }
+
   async createFolder(path) {
     const result = await this.rpc('files/create_folder_v2', { path, autorename: false });
     return { path: result.metadata.path_lower };

@@ -597,6 +597,37 @@ main {
   border-radius: 8px;
 }
 
+/* Undo/redo sit within thumb reach while reading a note, not in the toolbar:
+   the toolbar is already full and history is only relevant on this screen. */
+.doc-tools {
+  position: fixed;
+  right: 0.9rem;
+  bottom: calc(0.9rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tool-btn {
+  width: 2.7rem;
+  height: 2.7rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  color: var(--fg);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
 /* --------------------------------------------------------------- dialogs */
 
 .sheet {

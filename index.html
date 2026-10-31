@@ -86,6 +86,10 @@
 
   <section id="screen-file" hidden>
     <article id="blocks" class="doc"></article>
+    <div class="doc-tools">
+      <button id="undo" class="tool-btn" type="button" aria-label="Undo" disabled>&#8630;</button>
+      <button id="redo" class="tool-btn" type="button" aria-label="Redo" disabled>&#8631;</button>
+    </div>
   </section>
 </main>
 
@@ -120,6 +124,10 @@
       <span>Recent files shown on the home screen</span>
       <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">
     </label>
+    <label class="field">
+      <span>Undo steps kept per note</span>
+      <input id="undo-limit" type="number" inputmode="numeric" min="1" max="200" step="1">
+    </label>
     <p class="where">Saved on this device only.</p>
     <menu>
       <button id="settings-close" class="link" type="button">Close</button>
@@ -149,6 +157,13 @@
     <li><code>[text](https://example.com)</code> — a link</li>
   </ul>
   <p>There is no Save button: edits save by themselves, about a second after you stop typing. Leave a block to see it rendered again.</p>
+  <h3>Undo and pictures</h3>
+  <ul>
+    <li><strong>Undo</strong> sits at the bottom right while a note is open
+      (⌘Z / Ctrl+Z on a keyboard, shift for redo). One step per block edit.</li>
+    <li><strong>Paste a picture</strong> into a note: it uploads to the
+      <code>assets</code> folder beside the note and links itself in.</li>
+  </ul>
   <h3>Files and folders</h3>
   <ul>
     <li><strong>+</strong> creates a file or a folder in the folder you are looking at.</li>

@@ -28,6 +28,12 @@ the app is a static site, and it talks to Dropbox directly from your browser.
 - **Folders work like folders.** Tap one to go in, use the trail at the top (or
   the back arrow) to come back up. **+** creates a file or a folder in the
   folder you are looking at, so nesting is just a matter of going in first.
+- **Undo, without a Save button.** The round buttons at the bottom right (or
+  Cmd/Ctrl+Z) step back through block edits; how many steps are kept is a
+  setting. Undo survives the autosave, because it writes like any other edit.
+- **Paste a picture** into a note: it is uploaded to an `assets` folder beside
+  the note and linked in relatively, so the note still renders in any other
+  Markdown editor.
 - **Finding things.** The home screen lists the files you changed most
   recently (Settings controls how many), and the search box matches file names
   across every folder, showing where each match lives.
@@ -38,11 +44,12 @@ the app is a static site, and it talks to Dropbox directly from your browser.
 
 ## Status
 
-**P1–P3 are working** — sign-in, folders with nesting and breadcrumb
+**All four phases are working** — sign-in, folders with nesting and breadcrumb
 navigation, rendered Markdown, in-place editing with autosave, interactive task
-lists, new files and folders, recent files, filename search, the guide at
-[`docs/`](./docs/index.html), icons and the publish script. Still to come in
-`REQUIREMENTS.md` priority order: undo and pasted images (P4).
+lists, new files and folders, recent files, filename search, undo/redo, pasted
+images, the guide at [`docs/`](./docs/index.html), icons and the publish script.
+Not yet done, and deliberately so: offline writing (a save while offline errors
+and keeps your text) and any sharing beyond Dropbox itself.
 [`PLAN.md`](./PLAN.md) has the detail; [`POC.md`](./POC.md) records the proof of
 concept this was built from.
 

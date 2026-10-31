@@ -4,14 +4,19 @@ import { createMockProvider } from './js/mock.js';
 import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.js';
 import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
-import { AuthError } from './js/errors.js';
+import { AuthError, ConflictError } from './js/errors.js';
 import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
 import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
+import { undoLimit } from './js/history.js';
+import { assetDirFor, imageFileName, markdownImage, resolveImagePath } from './js/images.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
 const RECENT_KEY = 'taisce.recentCount';
+const UNDO_KEY = 'taisce.undoLimit';
+const imageUrls = new Map();
+
 const state = {
   dir: '',
   entries: [],
@@ -19,12 +24,22 @@ const state = {
   index: null,
   query: '',
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
+  undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
 };
+
+function updateHistoryButtons({ canUndo, canRedo }) {
+  $('#undo').disabled = !canUndo;
+  $('#redo').disabled = !canRedo;
+}
 
 const editor = createEditor({
   container: $('#blocks'),
   onChange: (text) => engine.setText(text),
   onStatus: setStatus,
+  onHistory: updateHistoryButtons,
+  undoLimit: state.undoMax,
+  resolveImage,
+  onPasteImage: uploadPastedImage,
 });
 
 const engine = createSaveEngine({
@@ -45,6 +60,44 @@ const engine = createSaveEngine({
   onAuthLost: () => showAuth(),
   getEdits: () => editor.edits(),
 });
+
+// Dropbox is not a web host: an image reference in a note is fetched with the
+// user's token and shown from an object URL. The map is a session cache so a
+// re-render does not re-download every picture.
+async function resolveImage(src) {
+  if (!state.file) return null;
+  const path = resolveImagePath(state.file.path, src);
+  if (!path) return null;
+  if (imageUrls.has(path)) return imageUrls.get(path);
+
+  try {
+    const blob = await provider.readBlob(path);
+    const url = URL.createObjectURL(blob);
+    imageUrls.set(path, url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+// Upload first, link second: a link to an image that failed to upload is worse
+// than no link at all.
+async function uploadPastedImage(file) {
+  if (!state.file) throw new Error('open a note before pasting an image');
+
+  const dir = assetDirFor(state.file.path);
+  try {
+    await provider.createFolder(dir);
+  } catch (error) {
+    if (!(error instanceof ConflictError)) throw error;
+  }
+
+  const name = imageFileName(file.type);
+  const target = joinPath(dir, name);
+  await provider.uploadFile(target, file);
+  imageUrls.delete(target);
+  return markdownImage(name);
+}
 
 function showAuth() {
   setTitle('Taisce');
@@ -360,6 +413,8 @@ async function disconnect() {
   state.entries = [];
   state.file = null;
   state.dir = '';
+  for (const url of imageUrls.values()) URL.revokeObjectURL(url);
+  imageUrls.clear();
 
   if (MOCK) {
     // Re-seed the demo rather than offering a real sign-in.
@@ -393,6 +448,7 @@ async function runSearch(value) {
 
 function openSettings() {
   $('#recent-count').value = String(state.recentMax);
+  $('#undo-limit').value = String(state.undoMax);
   $('#settings').showModal();
   setTimeout(() => $('#recent-count').focus(), 60);
 }
@@ -400,7 +456,10 @@ function openSettings() {
 function saveSettings(event) {
   event.preventDefault();
   state.recentMax = recentCount($('#recent-count').value);
+  state.undoMax = undoLimit($('#undo-limit').value);
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
+  localStorage.setItem(UNDO_KEY, String(state.undoMax));
+  editor.setUndoLimit(state.undoMax);
   $('#settings').close();
   if (!$('#screen-list').hidden) renderList();
 }
@@ -429,6 +488,8 @@ async function boot() {
   });
   $('#help-button').addEventListener('click', showHelp);
   $('#help-close').addEventListener('click', () => $('#help').close());
+  $('#undo').addEventListener('click', () => editor.undo());
+  $('#redo').addEventListener('click', () => editor.redo());
   $('#settings-button').addEventListener('click', openSettings);
   $('#settings-close').addEventListener('click', () => $('#settings').close());
   $('#settings-form').addEventListener('submit', saveSettings);

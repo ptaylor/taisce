@@ -40,8 +40,17 @@ const SAMPLE = {
   },
 };
 
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function seed() {
-  const data = { folders: [...SAMPLE.folders], files: {} };
+  const data = { folders: [...SAMPLE.folders], files: {}, images: {} };
   const now = Date.now();
   Object.entries(SAMPLE.files).forEach(([path, text], index) => {
     // Staggered so the demo has a believable "recently modified" order.
@@ -57,6 +66,7 @@ function read() {
     if (!raw) return seed();
     const data = JSON.parse(raw);
     if (!data || !data.files || !data.folders) return seed();
+    if (!data.images) data.images = {};
     return data;
   } catch {
     return seed();
@@ -130,6 +140,22 @@ export function createMockProvider() {
       data.files[path] = { rev: 'r1', text, modified: Date.now() };
       write(data);
       return { rev: 'r1' };
+    },
+
+    async uploadFile(path, blob) {
+      await wait();
+      const data = read();
+      if (data.files[path] || data.folders.includes(path)) throw new ConflictError('conflict');
+      data.images[path] = await blobToDataUrl(blob);
+      write(data);
+      return { path, rev: 'img1' };
+    },
+
+    async readBlob(path) {
+      await wait();
+      const dataUrl = read().images[path];
+      if (!dataUrl) throw new Error('not_found');
+      return (await fetch(dataUrl)).blob();
     },
 
     async createFolder(path) {
