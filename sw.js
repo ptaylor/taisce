@@ -22,6 +22,7 @@ const SHELL = [
   './vendor/purify.es.mjs',
   './docs/',
   './docs/index.html',
+  './docs/privacy.html',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',

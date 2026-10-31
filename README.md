@@ -81,8 +81,15 @@ https://ptaylor.github.io/taisce/
 ```
 
 The Dropbox app needs: **Scoped access**, **App folder** named `Taisce`, and the
-permissions `account_info.read`, `files.metadata.read`, `files.content.read`,
-`files.content.write`.
+permissions `files.metadata.read`, `files.content.read`, `files.content.write`.
+It does **not** need `account_info.read` — the app never requests your name or
+email — so remove that scope if the App Console has it. Dropbox reviews the
+least-privilege question at production approval, and an unused scope is a
+broader consent screen than the app justifies.
+
+For the App Console, the privacy policy URL is
+<https://ptaylor.github.io/taisce/docs/privacy.html> and the website URL is
+<https://ptaylor.github.io/taisce/>.
 
 ## Guide
 
@@ -131,6 +138,10 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
   could read it, which is why there are no third-party scripts and everything
   rendered from a file is sanitised.
 - Disconnecting revokes the token at Dropbox as well as forgetting it locally.
+- The full policy is at
+  [`docs/privacy.html`](./docs/privacy.html) — written for the Dropbox
+  production review, and accurate about the one thing that matters: notes never
+  leave your account.
 
 ## Licence
 

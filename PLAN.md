@@ -44,7 +44,7 @@ Rules that make this work or fail:
 | Setting | Value | Why |
 | --- | --- | --- |
 | Access type | **App folder**, folder name `Taisce` | Already set. The app can only ever see `/Apps/Taisce`; that is the privacy claim in the README. Do not switch to Full Dropbox. |
-| Permissions | `account_info.read`, `files.metadata.read`, `files.content.read`, `files.content.write` | Already set. All four are used: the account name for the signed-in chip, metadata for listing, content read/write for open and save. |
+| Permissions | `files.metadata.read`, `files.content.read`, `files.content.write` | Already set. `account_info.read` was also granted but is not used by any code path; drop it before production review, where least privilege is checked. |
 | OAuth flow | **PKCE**, no app secret | A static site cannot keep a secret. Do not enable "Allow implicit grant"; PKCE is the supported public-client flow. |
 | Branding | 64×64 and 256×256 icons | From the icon phase (P1). Dropbox's branding rules forbid their own logo in the mark. |
 | App name | `Taisce` | Shown on the consent screen. |

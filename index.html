@@ -49,8 +49,10 @@
         <ol>
           <li>Create a <em>Scoped access</em>, <em>App folder</em> app at
             <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noreferrer">dropbox.com/developers/apps</a>.</li>
-          <li>Permissions: <code>account_info.read</code>, <code>files.metadata.read</code>,
-            <code>files.content.read</code>, <code>files.content.write</code>.</li>
+          <li>Permissions: <code>files.metadata.read</code>,
+            <code>files.content.read</code>, <code>files.content.write</code>.
+            Taisce does not use <code>account_info.read</code>; remove it if your
+            app already has it.</li>
           <li>Add the redirect URI below under <em>Settings → OAuth 2</em>.</li>
           <li>Put the app key in <code>js/config.js</code> and reload.</li>
         </ol>
@@ -175,7 +177,8 @@
     <li><strong>Android / desktop:</strong> browser menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
     <li><strong>iOS:</strong> Share → <em>Add to Home Screen</em>. There is no install prompt on iOS.</li>
   </ul>
-  <p><a href="./docs/" target="_blank" rel="noreferrer">Read the full guide</a></p>
+  <p><a href="./docs/" target="_blank" rel="noreferrer">Read the full guide</a> ·
+     <a href="./docs/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a></p>
   <menu>
     <button id="help-close" class="primary" type="button">Close</button>
   </menu>

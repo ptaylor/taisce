@@ -182,10 +182,12 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     authorisation.
   - Access tokens are short-lived. Request `token_access_type=offline` to get a
     refresh token, and refresh on `401` rather than prompting the user again.
-  - Ask for the least scope that works. The app is registered with
-    `account_info.read`, `files.metadata.read`, `files.content.read` and
-    `files.content.write`; all four are used (the account name, listing, reading,
-    writing). Adding a scope re-prompts every existing user for consent.
+  - Ask for the least scope that works, because Dropbox reviews exactly this at
+    production approval. The app needs `files.metadata.read` (listing),
+    `files.content.read` (open) and `files.content.write` (save, create,
+    upload). It does **not** use `account_info.read` — no code path calls
+    `users/get_current_account`; if the App Console still lists it, remove it.
+    Adding a scope re-prompts every existing user for consent.
   - Paths: `""` is the root; paths have no leading slash. Use `path_lower` for
     comparisons and `path_display` only for display — Dropbox paths are not
     case-sensitive.
