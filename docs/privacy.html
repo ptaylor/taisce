@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <title>Taisce — privacy policy</title>
@@ -49,7 +50,11 @@
       <li><strong>In your browser</strong>: a Dropbox refresh token and a
         short-lived access token in <code>localStorage</code>, plus two
         preferences (how many recent files to show, how many undo steps to keep).
-        No note content is kept in the browser once you leave the page.</li>
+        No note content is kept in the browser once you leave the page.
+        <em>Browser storage is per origin, and this app is served from
+        <code>ptaylor.github.io</code>, which also hosts other project pages of
+        the same account — those pages share this storage. A separate domain
+        would isolate it.</em></li>
       <li><strong>In your Dropbox account</strong>: your notes, and pictures you paste
         into a note, which are uploaded to an <code>assets</code> folder beside
         that note.</li>
@@ -59,6 +64,14 @@
         only network requests it makes are to the Dropbox API, plus the files of
         the app itself.</li>
     </ul>
+
+    <h2>What a note cannot do</h2>
+    <p>A note is untrusted input. Opening one never contacts a third party:
+      images that point at other websites are shown as links and are not
+      fetched, styling attributes are removed, scripts are stripped, and a
+      Content-Security-Policy blocks anything that slips through. Images in the
+      note's own <code>assets</code> folder are the only pictures loaded, and
+      they come from your Dropbox with your token.</p>
 
     <h2>How your data is used</h2>
     <p>Exclusively to do what you asked: list the files in the app folder, open

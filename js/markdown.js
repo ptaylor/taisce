@@ -4,9 +4,12 @@ import DOMPurify from '../vendor/purify.es.mjs';
 // Markdown from a shared Dropbox folder can be written by someone else, so
 // everything is sanitised before it reaches the DOM. The tests inject their own
 // `sanitize` so the renderer can be checked without a browser.
+// `style` can carry url(...) and phone home on render; `id`/`name` let a note
+// shadow the app's own element ids. Neither is needed in note content.
 const PURIFY_CONFIG = {
   ADD_ATTR: ['target', 'rel'],
   FORBID_TAGS: ['style', 'form', 'iframe', 'object', 'embed'],
+  FORBID_ATTR: ['style', 'id', 'name'],
 };
 
 if (typeof DOMPurify.addHook === 'function') {

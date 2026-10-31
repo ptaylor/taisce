@@ -65,13 +65,38 @@ export function createEditor({
     }
   }
 
-  function parkRelativeImages(scope) {
-    for (const image of scope.querySelectorAll('img[src]')) {
-      const src = image.getAttribute('src');
-      if (!src || ABSOLUTE_URL.test(src)) continue;
-      image.dataset.src = src;
-      image.src = BLANK_PIXEL;
+  // Images inside a note are not trusted to make requests. A Dropbox object is
+  // fetched with the user's token and shown from an object URL; anything remote
+  // becomes a link the reader can choose to follow, so opening a note never
+  // reveals their address to whoever wrote it.
+  //
+  // This runs on a parsed-but-detached document, before the markup is inserted:
+  // an <img> with a remote src fetches even in a detached div, so replacing it
+  // afterwards would already have leaked the request.
+  function sandboxHtml(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    for (const image of doc.querySelectorAll('img')) {
+      const src = image.getAttribute('src') || '';
+      if (!src) continue;
+
+      if (/^(?:data|blob):/i.test(src)) continue;
+      if (!ABSOLUTE_URL.test(src)) {
+        image.dataset.src = src;
+        image.src = BLANK_PIXEL;
+        continue;
+      }
+
+      const link = doc.createElement('a');
+      link.setAttribute('href', src);
+      link.setAttribute('target', '_blank');
+      link.setAttribute('rel', 'noopener noreferrer');
+      link.className = 'remote-image';
+      link.textContent = image.getAttribute('alt') || 'Remote image';
+      image.replaceWith(link);
     }
+
+    return doc.body.innerHTML;
   }
 
   function taskStatesOf(blockIndex) {
@@ -103,8 +128,7 @@ export function createEditor({
         const el = document.createElement('div');
         el.className = `block ${block.type}`;
         el.dataset.index = String(index);
-        el.innerHTML = renderMarkdown(block.source);
-        parkRelativeImages(el);
+        el.innerHTML = sandboxHtml(renderMarkdown(block.source));
 
         const states = taskStatesOf(index);
         el.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
