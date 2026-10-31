@@ -22,11 +22,17 @@
 
 <header class="bar">
   <button id="back" class="icon-btn" type="button" aria-label="Back" hidden>&#8249;</button>
+  <img class="brand" src="./icons/icon-64.png" alt="" width="24" height="24" aria-hidden="true">
   <div class="title">
     <span id="title">Taisce</span>
     <span id="subtitle"></span>
   </div>
   <button id="new" class="icon-btn" type="button" aria-label="New file" hidden>+</button>
+  <button id="settings-button" class="icon-btn" type="button" aria-label="Settings">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+      <path fill="currentColor" fill-rule="evenodd" d="M10.33 2.55L13.67 2.55L13.86 5.05L16.13 6.10L17.51 4.14L19.86 6.49L18.24 8.40L19.09 10.75L21.45 10.33L21.45 13.67L18.95 13.86L17.90 16.13L19.86 17.51L17.51 19.86L15.60 18.24L13.25 19.09L13.67 21.45L10.33 21.45L10.14 18.95L7.87 17.90L6.49 19.86L4.14 17.51L5.76 15.60L4.91 13.25L2.55 13.67L2.55 10.33L5.05 10.14L6.10 7.87L4.14 6.49L6.49 4.14L8.40 5.76L10.75 4.91ZM12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/>
+    </svg>
+  </button>
   <button id="help-button" class="icon-btn" type="button" aria-label="Help">?</button>
   <button id="refresh" class="icon-btn" type="button" aria-label="Reload">&#8635;</button>
 </header>
@@ -34,6 +40,7 @@
 <main>
   <section id="screen-auth" hidden>
     <div class="panel">
+      <img class="logo" src="./icons/icon-192.png" alt="" width="72" height="72" aria-hidden="true">
       <h1>Markdown notes in your own Dropbox</h1>
       <p>Taisce shows the files in its own folder in your Dropbox and edits them in place. It cannot see the rest of your account.</p>
       <button id="connect" class="primary" type="button">Connect to Dropbox</button>
@@ -73,7 +80,6 @@
     </div>
     <p id="search-empty" class="empty" hidden>No files match that name.</p>
     <div class="foot">
-      <button id="settings-button" class="link" type="button">Settings</button>
       <button id="disconnect" class="link" type="button">Disconnect</button>
     </div>
   </section>

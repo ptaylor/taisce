@@ -402,7 +402,7 @@ function saveSettings(event) {
   state.recentMax = recentCount($('#recent-count').value);
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
   $('#settings').close();
-  renderList();
+  if (!$('#screen-list').hidden) renderList();
 }
 
 async function boot() {
