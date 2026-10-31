@@ -1,4 +1,6 @@
-# Taisce — notes in your own Dropbox
+<p align="center"><img src="icons/icon-512.png" alt="Taisce icon" width="96" /></p>
+
+# Taisce — Markdown notes in your own Dropbox
 
 > *taisce* — Irish: a hoard, a store, a treasure.
 
@@ -12,45 +14,74 @@ belongs.
 There is no account with us, no database, and no server of ours in the middle:
 the app is a static site, and it talks to Dropbox directly from your browser.
 
-**Status: in planning.** This repository currently holds the requirements, the
-licence and the conventions — there is no application code yet, so there is
-nothing to install or open. [`REQUIREMENTS.md`](./REQUIREMENTS.md) is the scope;
-[`AGENTS.md`](./AGENTS.md) explains how the repository is worked on, and
-[`POC.md`](./POC.md) records the working Dropbox proof of concept this app
-builds on. [`PLAN.md`](./PLAN.md) is the phased plan for building it.
+## How to use it
 
-## Planned
+- **Tap a block to edit it.** The Markdown you type is the formatting — `## ` at
+  the start of a line makes a heading, `**bold**`, `` `code` ``, `- ` a list.
+  There is no toolbar, because the syntax already is one.
+- **Leave the block and it renders again.** A block shows its source only while
+  it has the caret.
+- **There is no Save button.** Edits save by themselves about a second after you
+  stop typing, and when the app is put away. There is no Cancel button either.
+- **Tap a task item** in the rendered file to check or uncheck it. The file is
+  updated and saved exactly like any other edit.
+- **Connect once.** The app only ever sees its own folder in your Dropbox
+  (`Apps/Taisce`), never the rest of your account.
+- **Disconnect** revokes the token at Dropbox and forgets it on the device. Your
+  files are never touched.
 
-- **Read and write your Markdown files in Dropbox**, authorised with OAuth
-  (PKCE — the app never holds a secret), with a disconnect that revokes the
-  token.
-- **Rendered Markdown, edited in place.** No Save button: edits autosave.
-  Typing `## `, `**bold**` or `- [ ] ` is the formatting UI. Task items are
-  ticked by tapping them, straight from the rendered file.
-- **Folders with nesting** (P2), **recent files and filename search** (P3),
-  **undo and pasted images** (P4).
-- **Installable on a phone**, with 64×64 and 256×256 icons, a favicon, and a
-  documentation page carrying the instructions (P3).
-- **Hosted at <https://ptaylor.github.io/taisce/>**: `publish.sh` versions and
-  pushes the site files to a `public` branch, and GitHub Pages serves that
-  branch.
+## Status
 
-## Running it
+**P1 is working** — sign-in, the top-level file list, rendered Markdown, in-place
+editing with autosave, interactive task lists, new files, icons and the publish
+script. Still to come, in `REQUIREMENTS.md` priority order: folders (P2), recent
+files and filename search (P3), undo and pasted images (P4), and the in-app
+documentation page (P3). [`PLAN.md`](./PLAN.md) has the detail;
+[`POC.md`](./POC.md) records the proof of concept this was built from.
 
-Once the app exists, it is a static site with no build step:
+## Running it locally
+
+It is a static site with no build step. Serve it — do not open the file
+directly, because a service worker needs a real origin:
 
 ```sh
 python3 -m http.server 8080
 ```
 
-then open <http://localhost:8080>. Serve it rather than opening the file
-directly: a service worker needs a real origin, and `file://` is not one.
+then open <http://localhost:8080>. The port matters: `8080` is the local
+redirect URI registered with Dropbox, so sign-in only returns to that port.
 
-Tests, once there are any:
+Add `?mock=1` for a demo backed by `localStorage`, with no Dropbox account and
+no token: <http://localhost:8080/?mock=1>.
+
+## Dropbox setup
+
+The app key is in [`js/config.js`](./js/config.js) and is a public identifier —
+the app uses OAuth with PKCE and never holds a secret. Two redirect URIs must be
+registered in the App Console (*Settings → OAuth 2 → Redirect URIs*), each
+matching exactly, trailing slash included:
+
+```text
+http://localhost:8080/
+https://ptaylor.github.io/taisce/
+```
+
+The Dropbox app needs: **Scoped access**, **App folder** named `Taisce`, and the
+permissions `account_info.read`, `files.metadata.read`, `files.content.read`,
+`files.content.write`.
+
+## Tests
 
 ```sh
-npm test
+npm test        # node --test, no dependencies
 ```
+
+## Icons
+
+`icons/icon.svg` is the artwork; every PNG is rasterised from it by
+`tools/make-icons.sh`. Change the SVG and re-run the script in the same commit,
+so the favicon, the app icons, the README image and the Dropbox App Console
+branding (64×64 and 256×256) cannot drift apart.
 
 ## Deploying
 
@@ -60,25 +91,31 @@ separate:
 1. **`publish.sh`** bumps the version, tags the release, pushes `main`, and
    pushes a fixed whitelist of site files to the `public` branch.
 2. **GitHub Pages** serves the `public` branch. That deployment is Pages' own
-   managed pipeline — the pre-configured Actions behind *Deploy from a branch* —
-   so this repository authors no workflow of its own. Point Pages at
-   *Deploy from a branch → `public` → `/(root)`* once in the repository settings.
+   configured pipeline (*Deploy from a branch → `public` → `/(root)`*), so this
+   repository authors no workflow of its own.
+
+```sh
+./publish.sh --no-push   # print the next version and what would be published
+./publish.sh             # bump, tag, push main + tag + public
+```
 
 Because the site is served from the `/taisce/` sub-path, every URL in the app is
 relative. A leading `/` works on `localhost` and breaks the deployed site.
 
 ## Privacy
 
-- Your notes stay in your Dropbox. Nothing is sent anywhere else — there is no
-  analytics and no third-party script.
-- The Dropbox access token lives in your browser's storage and leaves when you
-  log out or disconnect. Disconnecting also revokes it at Dropbox.
-- The Dropbox app key (`be0wdpfwojgf4p3`) is a public identifier. The app secret
-  is never used and never stored in this repository.
+- Your notes stay in your Dropbox. Nothing is sent anywhere else — no analytics,
+  no third-party scripts; the Markdown renderer is vendored in `vendor/`.
+- The Dropbox refresh token lives in this browser's `localStorage`. That is a
+  deliberate trade for having no backend: any script running on this origin
+  could read it, which is why there are no third-party scripts and everything
+  rendered from a file is sanitised.
+- Disconnecting revokes the token at Dropbox as well as forgetting it locally.
 
 ## Licence
 
-MIT (see [`LICENSE`](./LICENSE)).
+MIT (see [`LICENSE`](./LICENSE)). The vendored libraries keep their own licences
+in [`vendor/`](./vendor).
 
 ---
 

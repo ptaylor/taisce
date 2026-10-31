@@ -4,11 +4,11 @@ Instructions for any human or AI agent working in this repository.
 
 ## Summary
 
-Taisce (*TAHSH-keh*, Irish for "hoard" or "store") is a browser app for writing
-and editing plain-text files in the user's own Dropbox: lists, numbered lists,
-task lists, free-form notes, Markdown and specs. It is a PWA served as a static
-site from GitHub Pages — there is no server of ours, no database, and no copy of
-anyone's files anywhere except their own Dropbox and their own browser.
+Taisce (*TAHSH-keh*, Irish for "hoard" or "store") is a browser app for reading
+and editing Markdown files in the user's own Dropbox. It renders the file and
+lets you edit it where you read it, with no Save button. It is a PWA served as a
+static site from GitHub Pages — there is no server of ours, no database, and no
+copy of anyone's files anywhere except their own Dropbox and their own browser.
 
 `REQUIREMENTS.md` is the source of truth for **what** the app must do. This file
 covers **how** the repository is worked on. When the two disagree about scope,
@@ -16,35 +16,35 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 ## Status
 
-**Pre-implementation.** The repository holds `README.md`, `LICENSE`,
-`REQUIREMENTS.md` and this file. There is no application code, no build step and
-no tests yet.
+**P1 implemented, deployed by hand.** Sign-in (PKCE), the top-level `.md` list,
+rendered Markdown, source-preserving in-place editing with autosave, interactive
+task lists, new files, the icon set and `publish.sh` all exist and are tested.
+The site has not yet been published to Pages — the first `./publish.sh` is a
+decision, not a step to take casually.
 
-Active milestone: the first end-to-end path — Dropbox OAuth (PKCE) → list a
-folder → open a file → edit → save it back → install as a PWA. Everything else
-in `REQUIREMENTS.md` (the six file formats, settings, icons, the marketing page)
-comes after that path works.
+Known gaps, in requirement priority order:
 
-Known gaps, in the order they are likely to bite:
-
-- No code, no icons, no manifest, no service worker.
-- The GitHub Pages deployment (`publish.sh` → `public` branch → Pages) does not
-  exist yet.
-- Dropbox scopes and the registered redirect URIs are not yet recorded anywhere
-  in the repository; whichever commit wires up OAuth must record both.
+- **P2** folders: listing is top-level only; no create-folder, no breadcrumb.
+- **P3** recent files, filename search, and the `docs/` page (the in-app help
+  dialog is the P1 stand-in).
+- **P4** undo, and pasting an image into the note.
+- No offline write queue: a save while offline errors and keeps the buffer.
 
 ## Commands
 
-There is nothing to build or test yet. A command appears here in the same commit
-that makes it work — never before, because a documented command that fails is
-worse than a missing one.
-
-Once the static site exists, these are the intended entry points:
+A command appears here in the same commit that makes it work — never before,
+because a documented command that fails is worse than a missing one.
 
 ```sh
-python3 -m http.server 8080   # local preview at http://localhost:8080
+python3 -m http.server 8080   # serve the app at http://localhost:8080
 npm test                      # node --test, no runtime dependencies
+./publish.sh --no-push        # show the next version, change nothing
+./publish.sh                  # bump, tag, push main + tag + public
 ```
+
+**8080 is not a preference** — it is the local port registered as a Dropbox
+redirect URI, so a server on any other port cannot complete sign-in. Add
+`?mock=1` to work on the UI with no account at all.
 
 There is **no build step**. If a change makes one necessary, it has to earn its
 place (see "Project rules"); the default is that what is committed is what is
@@ -54,19 +54,33 @@ served.
 
 | Path | What it is |
 | --- | --- |
-| `REQUIREMENTS.md` | Scope: file formats, settings, icons, host URL, Dropbox app. The "what". |
-| `POC.md` | What the earlier Dropbox proof of concept proved, how it worked, and the traps it paid for. Reference, not a dependency. |
-| `PLAN.md` | The phased implementation plan: decisions, milestones, acceptance criteria and risks. |
+| `index.html` | The app shell: header, three screens, the new-file / confirm / help dialogs. |
+| `app.js` | Wiring only: boot, screens, list, open, save engine hook-up. |
+| `styles.css` | Design tokens (`--bg`, `--accent`, …) and layout. Light and dark. |
+| `js/auth.js` | PKCE, the token store, refresh, sign-out. |
+| `js/dropbox.js` | The Dropbox API client: list, read, write, create, revoke. |
+| `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
+| `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
+| `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking. |
+| `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
+| `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
+| `js/ui.js`, `js/errors.js` | Small shared helpers. |
+| `js/config.js` | The app key (a public identifier) and nothing else. |
+| `vendor/` | Pinned `marked` and `DOMPurify`, with their licences. Not a build step. |
+| `icons/` | `icon.svg` is the artwork; every PNG is generated by `tools/make-icons.sh`. |
+| `tools/make-icons.sh` | Rasterises the icon set (needs ImageMagick). |
+| `sw.js`, `manifest.webmanifest` | PWA shell: network-first, cache name bumped by `publish.sh`. |
+| `publish.sh` | Version, tag, push `main` and the site whitelist to `public`. |
+| `test/` | `node --test` suites for the pure modules. |
+| `REQUIREMENTS.md` | Scope, in priority order. The "what". |
+| `PLAN.md` | The phased plan: decisions, milestones, acceptance criteria, risks. |
+| `POC.md` | What the earlier Dropbox proof of concept proved and the traps it paid for. |
 | `README.md` | The user-facing front door. Keep it in step with behaviour you change. |
-| `AGENTS.md` | This file — conventions for working in the repository. |
+| `AGENTS.md` | This file. |
 | `LICENSE` | MIT. |
 | `.gitignore` | Part of every change; see "Keeping `.gitignore` current". |
 
-The application does not exist yet. The intended shape, when it does, is a
-static site at the repository root — `index.html`, `js/` (ES modules), `icons/`,
-`manifest.webmanifest`, `sw.js` — plus `publish.sh` at the root. There is no
-`.github/workflows/`: Pages deploys the published branch itself. Update this
-table in the commit that creates each entry.
+There is no `.github/workflows/`: Pages deploys the published branch itself.
 
 ## Technology Stack
 
@@ -85,10 +99,43 @@ table in the commit that creates each entry.
   - Keep modules importable in Node with no DOM dependency where the logic is
     pure (paths, task-list parsing, Markdown rendering); that is what `node
     --test` tests. The DOM-facing code stays thin.
-  - No inline event handlers, and no `innerHTML` with user file content — notes
-    are untrusted text that arrived from someone else's Dropbox.
+  - No inline event handlers. The one `innerHTML` in the app is in `editor.js`,
+    and it only ever receives output from `renderMarkdown`, which sanitises.
+    Notes are untrusted text that arrived from someone else's Dropbox.
 - **Docs**: [MDN Web Docs](https://developer.mozilla.org/en-US/) ·
   [ES modules](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
+
+### marked (vendored)
+
+- **Role**: turns Markdown into HTML.
+- **Version**: 15.0.7, pinned as `vendor/marked.esm.js` (single-file ESM, no
+  build step). Licence: MIT, in `vendor/marked.LICENSE.md`.
+- **Best Practices**:
+  - Use `new Marked({ gfm: true, breaks: false })` from the vendored module. The
+    `marked` default export is an *instance*, not the class — `new marked.Marked()`
+    throws, which is exactly how the first run failed.
+  - Task-list checkboxes arrive as `<input disabled type="checkbox">`; the
+    editor re-enables them and maps them, in document order, to the task lines
+    in the block's source. Do not parse rendered HTML to find the source line.
+  - Never re-serialise the Markdown from marked's output. Rendering is one-way;
+    the file is edited by source spans (`js/blocks.js`).
+- **Docs**: [marked docs](https://marked.js.org/) ·
+  [GFM task lists](https://www.markdownlang.com/extended/task-lists.html)
+
+### DOMPurify (vendored)
+
+- **Role**: sanitises the HTML marked produces before it reaches the DOM.
+- **Version**: 3.2.4, pinned as `vendor/purify.es.mjs`. Licence: Apache-2.0 /
+  MPL-2.0, in `vendor/dompurify.LICENSE`.
+- **Best Practices**:
+  - Every rendered block goes through `renderMarkdown`; there is no other
+    `innerHTML` path. Keep it that way.
+  - The `afterSanitizeAttributes` hook adds `target="_blank"` and
+    `rel="noopener noreferrer"` to links; remove the hook and links open in the
+    app's own window.
+  - DOMPurify needs a DOM. In Node it is importable but unusable, which is why
+    `createRenderer` takes a `sanitize` override and the tests inject one.
+- **Docs**: [DOMPurify](https://github.com/cure53/DOMPurify)
 
 ### PWA — Web App Manifest + service worker
 
@@ -128,10 +175,10 @@ table in the commit that creates each entry.
     authorisation.
   - Access tokens are short-lived. Request `token_access_type=offline` to get a
     refresh token, and refresh on `401` rather than prompting the user again.
-  - Ask for the least scope that works: `files.metadata.read`,
-    `files.content.read`, `files.content.write`; `account_info.read` only if the
-    interface actually greets the user by name. Adding a scope re-prompts every
-    existing user for consent.
+  - Ask for the least scope that works. The app is registered with
+    `account_info.read`, `files.metadata.read`, `files.content.read` and
+    `files.content.write`; all four are used (the account name, listing, reading,
+    writing). Adding a scope re-prompts every existing user for consent.
   - Paths: `""` is the root; paths have no leading slash. Use `path_lower` for
     comparisons and `path_display` only for display — Dropbox paths are not
     case-sensitive.
@@ -141,9 +188,9 @@ table in the commit that creates each entry.
     upload-whole-file, with no partial writes. Use the `rev`/`update` write mode
     and surface the `conflict` error instead of overwriting whatever changed
     underneath.
-  - The token goes in browser storage the user can clear (and "Logout" and
-    "Disconnect" do exactly that, including revoking the token). Never log a
-    token, and never put one in a URL.
+  - The token lives in `localStorage` because there is no backend. "Disconnect"
+    revokes it at Dropbox and forgets it locally. Never log a token, and never
+    put one in a URL.
 - **Docs**: [OAuth guide (PKCE, refresh tokens)](https://developers.dropbox.com/oauth-guide) ·
   [HTTP API reference](https://www.dropbox.com/developers/documentation/http/documentation) ·
   [App Console](https://www.dropbox.com/developers/apps)
@@ -228,13 +275,18 @@ Rules:
 - **Icons move together.** `REQUIREMENTS.md` asks for 64×64 and 256×256, a
   favicon and a README icon. They are the same artwork at different sizes: change
   them in one commit, from one source image, or the app and the README drift.
-- **The same file, several ways of looking at it.** "List", "Numbered List",
-  "Task List", "Markdown", "Spec" and "Free Form" are views over a plain-text
-  file, not six file formats. Whatever a view adds (task checkboxes, strikethrough
-  for done) must round-trip to text that the other views still read. A saved file
-  must be worth reading in a text editor.
-- **Colours are a setting, not a skin.** Keep the palette in one place so the
-  settings screen, the manifest `theme_color` and the CSS cannot disagree.
+- **The file is the source of truth, byte-for-byte.** Every block keeps its exact
+  source span and an edit replaces only that span: `serialise(parse(src))` is
+  `src`. A heading edit must not reformat the paragraph below it, because the
+  same file is read by other editors and on other devices. The round-trip test
+  in `test/blocks.test.js` is the guard; do not "simplify" the editor into
+  re-rendering the document from a parsed tree.
+- **The Markdown you type is the UI.** No toolbar is required to make a heading,
+  a list or bold text. Any affordance added must stay optional.
+- **Nothing renders unsanitised.** `renderMarkdown` is the only path to
+  `innerHTML`; a note can come from someone else's Dropbox.
+- **Colours live in `:root`.** Keep the palette in one place so the CSS, the
+  manifest `theme_color` and the meta theme colours cannot disagree.
 - **Verify before claiming done.** Run the tests and load the page — a static
   site has no compiler to catch a broken module path, and the deployed
   sub-path is where relative URLs go wrong.
