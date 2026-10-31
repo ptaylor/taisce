@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Taisce">
+  <!-- Flat colours only: ImageMagick's built-in SVG renderer does not draw
+       gradients, and these PNGs are rasterised from this file with
+       tools/make-icons.sh. -->
+  <rect width="512" height="512" rx="112" fill="#0b1220"/>
+  <rect x="128" y="104" width="256" height="304" rx="34" fill="#ffffff"/>
+  <rect x="168" y="164" width="176" height="22" rx="11" fill="#0b6bcb"/>
+  <rect x="168" y="214" width="136" height="18" rx="9" fill="#c8d3e2"/>
+  <rect x="168" y="256" width="160" height="18" rx="9" fill="#c8d3e2"/>
+  <path d="M164 316 L198 350 L262 278 L284 300 L198 394 L142 338 Z" fill="#1a8f5f"/>
+</svg>
