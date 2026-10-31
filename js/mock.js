@@ -42,7 +42,11 @@ const SAMPLE = {
 
 function seed() {
   const data = { folders: [...SAMPLE.folders], files: {} };
-  for (const [path, text] of Object.entries(SAMPLE.files)) data.files[path] = { rev: 'r1', text };
+  const now = Date.now();
+  Object.entries(SAMPLE.files).forEach(([path, text], index) => {
+    // Staggered so the demo has a believable "recently modified" order.
+    data.files[path] = { rev: 'r1', text, modified: now - index * 3_600_000 };
+  });
   localStorage.setItem(KEY, JSON.stringify(data));
   return data;
 }
@@ -89,6 +93,17 @@ export function createMockProvider() {
       return [...folders, ...files];
     },
 
+    async index() {
+      await wait();
+      return Object.entries(read().files)
+        .filter(([path]) => /\.md$/i.test(path))
+        .map(([path, entry]) => ({
+          name: baseName(path).replace(/\.md$/i, ''),
+          path,
+          modified: entry.modified || 0,
+        }));
+    },
+
     async read(path) {
       await wait();
       const entry = read().files[path];
@@ -103,7 +118,7 @@ export function createMockProvider() {
       if (!entry) throw new Error('file not found');
       if (rev && entry.rev !== rev) throw new ConflictError('conflict');
       const next = 'r' + (Number(entry.rev.slice(1)) + 1);
-      data.files[path] = { rev: next, text };
+      data.files[path] = { rev: next, text, modified: Date.now() };
       write(data);
       return { rev: next };
     },
@@ -112,7 +127,7 @@ export function createMockProvider() {
       await wait();
       const data = read();
       if (data.files[path] || data.folders.includes(path)) throw new ConflictError('conflict');
-      data.files[path] = { rev: 'r1', text };
+      data.files[path] = { rev: 'r1', text, modified: Date.now() };
       write(data);
       return { rev: 'r1' };
     },

@@ -56,12 +56,24 @@
 
   <section id="screen-list" hidden>
     <nav id="crumbs" class="crumbs" aria-label="Folder"></nav>
+    <label class="search">
+      <span class="visually-hidden">Search files by name</span>
+      <input id="search" type="search" placeholder="Search files" autocomplete="off"
+             autocapitalize="off" spellcheck="false" enterkeyhint="search">
+    </label>
+    <div id="recents-block" hidden>
+      <h2 class="group-title">Recent</h2>
+      <ul id="recents" class="file-list"></ul>
+    </div>
+    <h2 id="files-title" class="group-title" hidden>Files</h2>
     <ul id="file-list" class="file-list"></ul>
     <div id="list-empty" class="empty" hidden>
       <p id="empty-msg">No Markdown files or folders yet.</p>
       <button id="empty-new" class="primary" type="button">Create something</button>
     </div>
+    <p id="search-empty" class="empty" hidden>No files match that name.</p>
     <div class="foot">
+      <button id="settings-button" class="link" type="button">Settings</button>
       <button id="disconnect" class="link" type="button">Disconnect</button>
     </div>
   </section>
@@ -91,6 +103,21 @@
     <menu>
       <button id="new-cancel" class="link" type="button">Cancel</button>
       <button id="new-create" class="primary" type="submit">Create</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="settings" class="sheet">
+  <form id="settings-form" novalidate>
+    <h2>Settings</h2>
+    <label class="field">
+      <span>Recent files shown on the home screen</span>
+      <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">
+    </label>
+    <p class="where">Saved on this device only.</p>
+    <menu>
+      <button id="settings-close" class="link" type="button">Close</button>
+      <button id="settings-save" class="primary" type="submit">Save</button>
     </menu>
   </form>
 </dialog>
@@ -127,6 +154,7 @@
     <li><strong>Android / desktop:</strong> browser menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
     <li><strong>iOS:</strong> Share → <em>Add to Home Screen</em>. There is no install prompt on iOS.</li>
   </ul>
+  <p><a href="./docs/" target="_blank" rel="noreferrer">Read the full guide</a></p>
   <menu>
     <button id="help-close" class="primary" type="button">Close</button>
   </menu>

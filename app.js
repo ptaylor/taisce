@@ -6,11 +6,20 @@ import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
 import { AuthError } from './js/errors.js';
 import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
+import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
-const state = { dir: '', entries: [], file: null };
+const RECENT_KEY = 'taisce.recentCount';
+const state = {
+  dir: '',
+  entries: [],
+  file: null,
+  index: null,
+  query: '',
+  recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
+};
 
 const editor = createEditor({
   container: $('#blocks'),
@@ -20,7 +29,11 @@ const editor = createEditor({
 
 const engine = createSaveEngine({
   provider,
-  onStatus: setStatus,
+  onStatus: (kind, detail) => {
+    // A save changes the modified time, so the recent list is stale.
+    if (kind === 'saved') state.index = null;
+    setStatus(kind, detail);
+  },
   onRemote: (text, info) => {
     editor.setText(text);
     toast(
@@ -68,38 +81,102 @@ function renderCrumbs() {
   });
 }
 
+function makeEntry(item, { sub = '', onOpen }) {
+  const li = document.createElement('li');
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = `entry ${item.type || 'file'}`;
+
+  const glyph = document.createElement('span');
+  glyph.className = 'glyph';
+  glyph.setAttribute('aria-hidden', 'true');
+  glyph.textContent = item.type === 'folder' ? '\u203a' : '';
+
+  const label = document.createElement('span');
+  label.className = 'label';
+  label.textContent = item.name;
+
+  button.append(glyph, label);
+
+  if (sub) {
+    const where = document.createElement('span');
+    where.className = 'sub';
+    where.textContent = sub;
+    button.appendChild(where);
+  }
+
+  button.addEventListener('click', onOpen);
+  li.appendChild(button);
+  return li;
+}
+
+function openSearchHit(hit) {
+  void openFile({ name: hit.name, path: hit.path, type: 'file' });
+}
+
+async function ensureIndex() {
+  if (!state.index) state.index = await provider.index();
+  return state.index;
+}
+
 function renderList() {
   const list = $('#file-list');
+  const recentsBlock = $('#recents-block');
+  const recents = $('#recents');
   const empty = $('#list-empty');
+  const searchEmpty = $('#search-empty');
+  const filesTitle = $('#files-title');
+
   list.replaceChildren();
+  recents.replaceChildren();
+
+  if (state.query) {
+    const hits = searchFiles(state.index || [], state.query);
+    const fragment = document.createDocumentFragment();
+    for (const hit of hits) {
+      fragment.appendChild(
+        makeEntry({ name: hit.name, type: 'file' }, { sub: folderOf(hit.path), onOpen: () => openSearchHit(hit) }),
+      );
+    }
+    list.appendChild(fragment);
+    recentsBlock.hidden = true;
+    filesTitle.hidden = true;
+    empty.hidden = true;
+    searchEmpty.hidden = hits.length > 0;
+    setStatus('ready', `${hits.length} match${hits.length === 1 ? '' : 'es'}`);
+    return;
+  }
+
+  searchEmpty.hidden = true;
+
+  const atRoot = !state.dir;
+  const recent = atRoot ? recentFiles(state.index || [], state.recentMax) : [];
+  if (recent.length) {
+    const fragment = document.createDocumentFragment();
+    for (const file of recent) {
+      fragment.appendChild(
+        makeEntry({ name: file.name, type: 'file' }, { sub: folderOf(file.path), onOpen: () => openSearchHit(file) }),
+      );
+    }
+    recents.appendChild(fragment);
+  }
+  recentsBlock.hidden = recent.length === 0;
 
   const fragment = document.createDocumentFragment();
   for (const entry of state.entries) {
-    const item = document.createElement('li');
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `entry ${entry.type}`;
-
-    const glyph = document.createElement('span');
-    glyph.className = 'glyph';
-    glyph.setAttribute('aria-hidden', 'true');
-    glyph.textContent = entry.type === 'folder' ? '\u203a' : '';
-    const label = document.createElement('span');
-    label.className = 'label';
-    label.textContent = entry.name;
-    button.append(glyph, label);
-
-    button.addEventListener('click', () => {
-      if (entry.type === 'folder') void loadList(entry.path);
-      else void openFile(entry);
-    });
-
-    item.appendChild(button);
-    fragment.appendChild(item);
+    fragment.appendChild(
+      makeEntry(entry, {
+        onOpen: () => {
+          if (entry.type === 'folder') void loadList(entry.path);
+          else void openFile(entry);
+        },
+      }),
+    );
   }
   list.appendChild(fragment);
 
-  empty.hidden = state.entries.length > 0;
+  filesTitle.hidden = recent.length === 0;
+  empty.hidden = state.entries.length > 0 || recent.length > 0;
   $('#empty-msg').textContent = state.dir
     ? 'This folder is empty.'
     : 'No Markdown files or folders yet.';
@@ -114,15 +191,29 @@ function renderList() {
 
 async function loadList(dir = state.dir) {
   state.dir = normaliseDir(dir);
+  state.query = '';
+  $('#search').value = '';
   setTitle('Taisce');
   setScreen('list', { back: Boolean(state.dir) });
   setStatus('loading');
   renderCrumbs();
   $('#file-list').replaceChildren();
+  $('#recents-block').hidden = true;
   $('#list-empty').hidden = true;
+  $('#search-empty').hidden = true;
 
   try {
-    state.entries = await provider.list(state.dir);
+    const [entries] = await Promise.all([provider.list(state.dir), state.dir ? null : ensureIndex()]);
+    state.entries = entries;
+
+    // Typing during a load is easy on a phone. Do not lose it: the query wins,
+    // and the index is fetched if this folder did not already need one.
+    const typed = $('#search').value.trim();
+    if (typed) {
+      state.query = typed;
+      await ensureIndex();
+    }
+
     renderList();
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
@@ -140,6 +231,8 @@ async function openFile(file) {
 
   state.file = file;
   state.dir = parentDir(file.path);
+  state.query = '';
+  $('#search').value = '';
   setScreen('file');
   setTitle(file.name);
   setStatus('loading');
@@ -221,6 +314,7 @@ async function submitNewFile(event) {
   try {
     if (kind === 'folder') {
       await provider.createFolder(joinPath(state.dir, name));
+      state.index = null;
       $('#new-file').close();
       toast(`Created the folder “${name}”`);
       await loadList(state.dir);
@@ -229,6 +323,7 @@ async function submitNewFile(event) {
 
     const path = joinPath(state.dir, /\.md$/i.test(name) ? name : `${name}.md`);
     await provider.create(path, '');
+    state.index = null;
     $('#new-file').close();
     await loadList(state.dir);
     const created = state.entries.find((entry) => entry.path === path.toLowerCase()) || {
@@ -278,6 +373,38 @@ function showHelp() {
   $('#help').showModal();
 }
 
+let searchTimer = 0;
+
+async function runSearch(value) {
+  state.query = String(value || '').trim();
+  if (!state.query) {
+    renderList();
+    return;
+  }
+  setStatus('loading');
+  try {
+    await ensureIndex();
+    renderList();
+  } catch (error) {
+    if (error instanceof AuthError) return showAuth();
+    setStatus('error', error.message || 'search failed');
+  }
+}
+
+function openSettings() {
+  $('#recent-count').value = String(state.recentMax);
+  $('#settings').showModal();
+  setTimeout(() => $('#recent-count').focus(), 60);
+}
+
+function saveSettings(event) {
+  event.preventDefault();
+  state.recentMax = recentCount($('#recent-count').value);
+  localStorage.setItem(RECENT_KEY, String(state.recentMax));
+  $('#settings').close();
+  renderList();
+}
+
 async function boot() {
   $('#redirect-uri').textContent = redirectUri();
   $('#disconnect').textContent = provider.disconnectLabel;
@@ -302,6 +429,24 @@ async function boot() {
   });
   $('#help-button').addEventListener('click', showHelp);
   $('#help-close').addEventListener('click', () => $('#help').close());
+  $('#settings-button').addEventListener('click', openSettings);
+  $('#settings-close').addEventListener('click', () => $('#settings').close());
+  $('#settings-form').addEventListener('submit', saveSettings);
+
+  $('#search').addEventListener('input', (event) => {
+    const value = event.target.value;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      void runSearch(value);
+    }, 150);
+  });
+
+  $('#search').addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.target.value = '';
+      void runSearch('');
+    }
+  });
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') void engine.flush();

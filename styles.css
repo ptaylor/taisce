@@ -246,7 +246,19 @@ main {
 }
 
 .entry .label {
+  flex: 0 1 auto;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Search hits and recents say which folder they came from. */
+.entry .sub {
+  margin-left: auto;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -270,6 +282,49 @@ main {
 
 .entry:hover {
   background: var(--accent-soft);
+}
+
+/* Search: filters by file name across the whole app folder. */
+.search {
+  display: block;
+  margin: 0 0 0.8rem;
+}
+
+.search input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+}
+
+.search input::placeholder {
+  color: var(--dim);
+}
+
+.search input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.group-title {
+  margin: 1.3rem 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Breadcrumbs: the trail down to the current folder, root always first. */

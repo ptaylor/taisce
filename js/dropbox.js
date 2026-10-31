@@ -96,6 +96,28 @@ export class DropboxProvider {
   }
 
   /**
+   * Every Markdown file in the app folder, with the time Dropbox last changed
+   * it. One recursive listing powers both "recent files" and search.
+   * @returns {Promise<{name: string, path: string, modified: number}[]>}
+   */
+  async index() {
+    let page = await this.rpc('files/list_folder', { path: '', recursive: true, limit: 2000 });
+    const entries = [...page.entries];
+    while (page.has_more) {
+      page = await this.rpc('files/list_folder/continue', { cursor: page.cursor });
+      entries.push(...page.entries);
+    }
+
+    return entries
+      .filter((entry) => entry['.tag'] === 'file' && /\.md$/i.test(entry.name))
+      .map((entry) => ({
+        name: entry.name.replace(/\.md$/i, ''),
+        path: entry.path_lower,
+        modified: Date.parse(entry.server_modified) || 0,
+      }));
+  }
+
+  /**
    * @param {string} path
    * @returns {Promise<{text: string, rev: string}>}
    */

@@ -16,16 +16,15 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 ## Status
 
-**P1 and P2 implemented, not yet published.** Sign-in (PKCE), folders with
-nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
-editing with autosave, interactive task lists, new files and folders, the icon
-set and `publish.sh` all exist and are tested. The site has not been published to
-Pages — the first `./publish.sh` is a decision, not a step to take casually.
+**P1–P3 implemented, not yet published.** Sign-in (PKCE), folders with nesting
+and breadcrumb navigation, rendered Markdown, source-preserving in-place editing
+with autosave, interactive task lists, new files and folders, recent files,
+filename search, the `docs/` guide, the icon set and `publish.sh` all exist and
+are tested. The site has not been published to Pages — the first `./publish.sh`
+is a decision, not a step to take casually.
 
 Known gaps, in requirement priority order:
 
-- **P3** recent files, filename search, and the `docs/` page (the in-app help
-  dialog is the stand-in).
 - **P4** undo, and pasting an image into the note.
 - No offline write queue: a save while offline errors and keeps the buffer.
 
@@ -60,6 +59,7 @@ served.
 | `js/dropbox.js` | The Dropbox API client: list (folders + files), read, write, create, create-folder, revoke. |
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
+| `js/recents.js` | Recent ordering, filename search, the recent-count preference. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
@@ -72,6 +72,7 @@ served.
 | `sw.js`, `manifest.webmanifest` | PWA shell: network-first, cache name bumped by `publish.sh`. |
 | `publish.sh` | Version, tag, push `main` and the site whitelist to `public`. |
 | `test/` | `node --test` suites for the pure modules. |
+| `docs/index.html` | The user guide, published with the app; the in-app `?` links to it. |
 | `REQUIREMENTS.md` | Scope, in priority order. The "what". |
 | `PLAN.md` | The phased plan: decisions, milestones, acceptance criteria, risks. |
 | `POC.md` | What the earlier Dropbox proof of concept proved and the traps it paid for. |
