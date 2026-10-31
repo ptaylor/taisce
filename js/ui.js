@@ -33,13 +33,13 @@ export function setStatus(kind, detail) {
   el.dataset.state = kind;
 }
 
-export function setScreen(name) {
+export function setScreen(name, { back = name === 'file' } = {}) {
   for (const screen of ['auth', 'list', 'file']) {
     const el = $(`#screen-${screen}`);
     if (el) el.hidden = screen !== name;
   }
-  const back = $('#back');
-  if (back) back.hidden = name !== 'file';
+  const backButton = $('#back');
+  if (backButton) backButton.hidden = !back;
   const newButton = $('#new');
   if (newButton) newButton.hidden = name !== 'list';
 }

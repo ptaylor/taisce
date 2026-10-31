@@ -5,11 +5,12 @@ import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.
 import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
 import { AuthError } from './js/errors.js';
+import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
-const state = { files: [], file: null };
+const state = { dir: '', entries: [], file: null };
 
 const editor = createEditor({
   container: $('#blocks'),
@@ -38,42 +39,97 @@ function showAuth() {
   setScreen('auth');
 }
 
+function renderCrumbs() {
+  const nav = $('#crumbs');
+  nav.replaceChildren();
+
+  const trail = breadcrumbs(state.dir);
+  trail.forEach((crumb, index) => {
+    const last = index === trail.length - 1;
+    const node = document.createElement(last ? 'span' : 'button');
+    node.className = last ? 'crumb current' : 'crumb';
+    node.textContent = crumb.label;
+
+    if (last) {
+      node.setAttribute('aria-current', 'page');
+    } else {
+      node.type = 'button';
+      node.addEventListener('click', () => {
+        void loadList(crumb.path);
+      });
+      const sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.setAttribute('aria-hidden', 'true');
+      sep.textContent = '/';
+      nav.append(node, sep);
+      return;
+    }
+    nav.append(node);
+  });
+}
+
 function renderList() {
   const list = $('#file-list');
   const empty = $('#list-empty');
   list.replaceChildren();
 
   const fragment = document.createDocumentFragment();
-  for (const file of state.files) {
+  for (const entry of state.entries) {
     const item = document.createElement('li');
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'file';
-    button.textContent = file.name;
+    button.className = `entry ${entry.type}`;
+
+    const glyph = document.createElement('span');
+    glyph.className = 'glyph';
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = entry.type === 'folder' ? '\u203a' : '';
+    const label = document.createElement('span');
+    label.className = 'label';
+    label.textContent = entry.name;
+    button.append(glyph, label);
+
     button.addEventListener('click', () => {
-      void openFile(file);
+      if (entry.type === 'folder') void loadList(entry.path);
+      else void openFile(entry);
     });
+
     item.appendChild(button);
     fragment.appendChild(item);
   }
   list.appendChild(fragment);
 
-  empty.hidden = state.files.length > 0;
-  setStatus('ready', `${state.files.length} file${state.files.length === 1 ? '' : 's'}${MOCK ? ' · demo' : ''}`);
+  empty.hidden = state.entries.length > 0;
+  $('#empty-msg').textContent = state.dir
+    ? 'This folder is empty.'
+    : 'No Markdown files or folders yet.';
+
+  const folders = state.entries.filter((entry) => entry.type === 'folder').length;
+  const files = state.entries.length - folders;
+  const parts = [];
+  if (folders) parts.push(`${folders} folder${folders === 1 ? '' : 's'}`);
+  if (files) parts.push(`${files} file${files === 1 ? '' : 's'}`);
+  setStatus('ready', `${parts.join(' · ') || 'empty'}${MOCK ? ' · demo' : ''}`);
 }
 
-async function loadList() {
+async function loadList(dir = state.dir) {
+  state.dir = normaliseDir(dir);
   setTitle('Taisce');
-  setScreen('list');
+  setScreen('list', { back: Boolean(state.dir) });
   setStatus('loading');
+  renderCrumbs();
   $('#file-list').replaceChildren();
   $('#list-empty').hidden = true;
 
   try {
-    state.files = await provider.list();
+    state.entries = await provider.list(state.dir);
     renderList();
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
+    if (/path\/not_found/.test(error.message || '')) {
+      toast('That folder no longer exists');
+      if (state.dir) return loadList(parentDir(state.dir));
+    }
     setStatus('error', error.message || 'could not list files');
   }
 }
@@ -83,6 +139,7 @@ async function openFile(file) {
   engine.close();
 
   state.file = file;
+  state.dir = parentDir(file.path);
   setScreen('file');
   setTitle(file.name);
   setStatus('loading');
@@ -121,15 +178,21 @@ async function refresh() {
 }
 
 async function goBack() {
-  await engine.flush();
-  engine.close();
-  state.file = null;
-  await loadList();
+  if (!$('#screen-file').hidden) {
+    await engine.flush();
+    engine.close();
+    state.file = null;
+    await loadList(state.dir);
+    return;
+  }
+  if (state.dir) await loadList(parentDir(state.dir));
 }
 
 function showNewFile() {
   $('#new-name').value = '';
   $('#new-error').hidden = true;
+  $('#new-file').querySelector('input[name="kind"][value="file"]').checked = true;
+  $('#new-where').textContent = state.dir ? `in ${state.dir}` : 'in the top level';
   $('#new-file').showModal();
   setTimeout(() => $('#new-name').focus(), 60);
 }
@@ -140,32 +203,48 @@ async function submitNewFile(event) {
   const error = $('#new-error');
   error.hidden = true;
 
-  let name = input.value.trim();
+  const kind = $('#new-form').querySelector('input[name="kind"]:checked')?.value || 'file';
+  const name = input.value.trim();
+
   if (!name) {
-    error.textContent = 'Give the file a name.';
+    error.textContent = 'Give it a name.';
     error.hidden = false;
     return;
   }
   if (/[/\\]/.test(name)) {
-    error.textContent = 'Names cannot contain / or \\';
+    error.textContent = 'Names cannot contain / or \\ — open a folder to nest inside it.';
     error.hidden = false;
     return;
   }
-  if (!/\.md$/i.test(name)) name += '.md';
 
-  const path = `/${name}`;
   $('#new-create').disabled = true;
   try {
+    if (kind === 'folder') {
+      await provider.createFolder(joinPath(state.dir, name));
+      $('#new-file').close();
+      toast(`Created the folder “${name}”`);
+      await loadList(state.dir);
+      return;
+    }
+
+    const path = joinPath(state.dir, /\.md$/i.test(name) ? name : `${name}.md`);
     await provider.create(path, '');
     $('#new-file').close();
-    await loadList();
-    const created = state.files.find((file) => file.path === path.toLowerCase()) || {
+    await loadList(state.dir);
+    const created = state.entries.find((entry) => entry.path === path.toLowerCase()) || {
       name: name.replace(/\.md$/i, ''),
       path,
+      type: 'file',
     };
     await openFile(created);
   } catch (caught) {
-    error.textContent = caught.message === 'conflict' ? 'A file with that name already exists.' : caught.message;
+    if (caught.message === 'conflict') {
+      error.textContent = 'That name is already taken.';
+    } else if (/path\/not_found/.test(caught.message || '')) {
+      error.textContent = 'That folder no longer exists.';
+    } else {
+      error.textContent = caught.message;
+    }
     error.hidden = false;
   } finally {
     $('#new-create').disabled = false;
@@ -183,8 +262,9 @@ async function disconnect() {
   } catch {
     // Local sign-out is what matters.
   }
-  state.files = [];
+  state.entries = [];
   state.file = null;
+  state.dir = '';
 
   if (MOCK) {
     // Re-seed the demo rather than offering a real sign-in.
@@ -238,7 +318,7 @@ async function boot() {
 
   if (MOCK) {
     document.body.dataset.mock = '1';
-    await loadList();
+    await loadList('');
     return;
   }
 
@@ -251,7 +331,7 @@ async function boot() {
 
   try {
     const signedIn = (await completeSignIn(APP_CONFIG.appKey)) || isSignedIn();
-    if (signedIn) await loadList();
+    if (signedIn) await loadList('');
     else showAuth();
   } catch (error) {
     toast(error.message || 'Sign-in failed');

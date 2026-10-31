@@ -12,6 +12,7 @@ const SHELL = [
   './js/errors.js',
   './js/markdown.js',
   './js/mock.js',
+  './js/paths.js',
   './js/save.js',
   './js/ui.js',
   './vendor/marked.esm.js',

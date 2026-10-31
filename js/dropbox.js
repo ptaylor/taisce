@@ -69,9 +69,10 @@ export class DropboxProvider {
   }
 
   /**
-   * Markdown files at the top level of the app folder. The extension is not
-   * part of the name people see.
-   * @returns {Promise<{name: string, path: string}[]>}
+   * One level of the app folder: its folders and its Markdown files. The
+   * `.md` extension is not part of the name people see.
+   * @param {string} dir
+   * @returns {Promise<{name: string, path: string, type: 'folder'|'file'}[]>}
    */
   async list(dir = '') {
     let page = await this.rpc('files/list_folder', { path: dir, recursive: false, limit: 2000 });
@@ -82,12 +83,16 @@ export class DropboxProvider {
     }
 
     return entries
-      .filter((entry) => entry['.tag'] === 'file' && /\.md$/i.test(entry.name))
+      .filter((entry) => entry['.tag'] === 'folder' || (entry['.tag'] === 'file' && /\.md$/i.test(entry.name)))
       .map((entry) => ({
-        name: entry.name.replace(/\.md$/i, ''),
+        name: entry['.tag'] === 'folder' ? entry.name : entry.name.replace(/\.md$/i, ''),
         path: entry.path_lower,
+        type: entry['.tag'] === 'folder' ? 'folder' : 'file',
       }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
   }
 
   /**
@@ -125,6 +130,11 @@ export class DropboxProvider {
     );
     const meta = await res.json();
     return { rev: meta.rev };
+  }
+
+  async createFolder(path) {
+    const result = await this.rpc('files/create_folder_v2', { path, autorename: false });
+    return { path: result.metadata.path_lower };
   }
 
   /** Revoke first, so the grant really ends, then forget it locally. */

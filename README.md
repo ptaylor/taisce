@@ -25,6 +25,9 @@ the app is a static site, and it talks to Dropbox directly from your browser.
   stop typing, and when the app is put away. There is no Cancel button either.
 - **Tap a task item** in the rendered file to check or uncheck it. The file is
   updated and saved exactly like any other edit.
+- **Folders work like folders.** Tap one to go in, use the trail at the top (or
+  the back arrow) to come back up. **+** creates a file or a folder in the
+  folder you are looking at, so nesting is just a matter of going in first.
 - **Connect once.** The app only ever sees its own folder in your Dropbox
   (`Apps/Taisce`), never the rest of your account.
 - **Disconnect** revokes the token at Dropbox and forgets it on the device. Your
@@ -32,12 +35,13 @@ the app is a static site, and it talks to Dropbox directly from your browser.
 
 ## Status
 
-**P1 is working** — sign-in, the top-level file list, rendered Markdown, in-place
-editing with autosave, interactive task lists, new files, icons and the publish
-script. Still to come, in `REQUIREMENTS.md` priority order: folders (P2), recent
-files and filename search (P3), undo and pasted images (P4), and the in-app
-documentation page (P3). [`PLAN.md`](./PLAN.md) has the detail;
-[`POC.md`](./POC.md) records the proof of concept this was built from.
+**P1 and P2 are working** — sign-in, folders with nesting and breadcrumb
+navigation, rendered Markdown, in-place editing with autosave, interactive task
+lists, new files and folders, icons and the publish script. Still to come, in
+`REQUIREMENTS.md` priority order: recent files and filename search (P3), undo and
+pasted images (P4), and the documentation page (P3). [`PLAN.md`](./PLAN.md) has
+the detail; [`POC.md`](./POC.md) records the proof of concept this was built
+from.
 
 ## Running it locally
 

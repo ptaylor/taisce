@@ -55,10 +55,11 @@
   </section>
 
   <section id="screen-list" hidden>
+    <nav id="crumbs" class="crumbs" aria-label="Folder"></nav>
     <ul id="file-list" class="file-list"></ul>
     <div id="list-empty" class="empty" hidden>
-      <p>No Markdown files in this folder yet.</p>
-      <button id="empty-new" class="primary" type="button">Create a file</button>
+      <p id="empty-msg">No Markdown files or folders yet.</p>
+      <button id="empty-new" class="primary" type="button">Create something</button>
     </div>
     <div class="foot">
       <button id="disconnect" class="link" type="button">Disconnect</button>
@@ -74,7 +75,13 @@
 
 <dialog id="new-file" class="sheet">
   <form id="new-form" novalidate>
-    <h2>New file</h2>
+    <h2>New</h2>
+    <p id="new-where" class="where"></p>
+    <fieldset class="kinds">
+      <legend>Type</legend>
+      <label><input type="radio" name="kind" value="file" checked><span>File</span></label>
+      <label><input type="radio" name="kind" value="folder"><span>Folder</span></label>
+    </fieldset>
     <label class="field">
       <span>Name</span>
       <input id="new-name" type="text" inputmode="text" autocomplete="off"
@@ -109,6 +116,12 @@
     <li><code>[text](https://example.com)</code> — a link</li>
   </ul>
   <p>There is no Save button: edits save by themselves, about a second after you stop typing. Leave a block to see it rendered again.</p>
+  <h3>Files and folders</h3>
+  <ul>
+    <li><strong>+</strong> creates a file or a folder in the folder you are looking at.</li>
+    <li>Tap a folder to go into it; the trail at the top of the list goes back up, and so does the back arrow.</li>
+    <li>Only Markdown files are listed. Other files in the folder are left alone.</li>
+  </ul>
   <h3>Install on a phone</h3>
   <ul>
     <li><strong>Android / desktop:</strong> browser menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
