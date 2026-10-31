@@ -1,0 +1,52 @@
+# taisce is a static site: everything the browser loads is source and belongs
+# in git. `index.html`, `js/`, `icons/`, `manifest.webmanifest` and `sw.js` are
+# deliberately NOT ignored — only local and generated files are.
+
+# --- macOS: Finder metadata, written wherever a folder is opened ---
+.DS_Store
+._*
+
+# --- Editors: ignore local artefacts, never the whole folder ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# --- Secrets and local state: never commit a token or an env file ---
+# The Dropbox app *key* is a public identifier (it is in REQUIREMENTS.md); the
+# app *secret* is not, and this app never needs it (OAuth PKCE). Access and
+# refresh tokens belong in browser storage, never in the repository.
+.env
+.env.*
+!.env.example
+*.log
+# Dumps written while debugging OAuth by hand.
+*oauth*token*.json
+
+# --- Node.js: development only (`node --test`); the app has no runtime
+# dependencies. A `package-lock.json` is committed as soon as a real dependency
+# is added, so it is not ignored here. ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Python: local `python3 -m http.server` helpers only ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+
+# --- Test and build output: regenerated on demand ---
+coverage/
+.nyc_output/
+dist/
+build/
+.cache/
