@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Taisce — guide</title>
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <a class="icon-btn" href="../" aria-label="Back to Taisce">&#8249;</a>
+  <div class="title">
+    <span id="title">Taisce — guide</span>
+    <span id="subtitle">How it works, and how to install it</span>
+  </div>
+</header>
+
+<main>
+  <article class="panel guide">
+    <h1>Markdown notes in your own Dropbox</h1>
+    <p>Taisce shows the Markdown files in its own folder in your Dropbox and
+      edits them where you read them. It never sees the rest of your account,
+      there is no account with us, and no server of ours in the middle.</p>
+
+    <h2>Editing</h2>
+    <ul>
+      <li><strong>Tap a block</strong> — a heading, a paragraph, a list — to edit
+        just that block. Leave it and it renders again.</li>
+      <li><strong>The Markdown you type is the formatting.</strong> There is no
+        toolbar to learn.</li>
+      <li><strong>No Save button.</strong> Edits save about a second after you
+        stop typing, and when you put the app away.</li>
+      <li><strong>Tap a task item</strong> to check or uncheck it. That is an
+        edit like any other.</li>
+    </ul>
+
+    <h2>Undo and pictures</h2>
+    <ul>
+      <li><strong>Undo</strong> and <strong>redo</strong> are the two round
+        buttons at the bottom right while a note is open. On a keyboard,
+        <code>Cmd/Ctrl+Z</code> undoes and <code>Shift+Cmd/Ctrl+Z</code> (or
+        <code>Ctrl+Y</code>) redoes. Each block edit counts as one step, and the
+        number of steps kept is configurable in Settings.</li>
+      <li><strong>Paste a picture</strong> into a note and it is uploaded to an
+        <code>assets</code> folder beside the note, then linked in as
+        <code>![](assets/…)</code>. The link is relative, so the note also works
+        in any other Markdown editor that can see the same folder.</li>
+    </ul>
+
+    <h2>What to type</h2>
+    <table>
+      <thead><tr><th>Type this</th><th>Get this</th></tr></thead>
+      <tbody>
+        <tr><td><code># Heading</code></td><td>A top-level heading (<code>##</code> for the next level down)</td></tr>
+        <tr><td><code>**bold**</code></td><td><strong>bold</strong></td></tr>
+        <tr><td><code>*italic*</code></td><td><em>italic</em></td></tr>
+        <tr><td><code>`code`</code></td><td>inline code</td></tr>
+        <tr><td><code>```js</code> … <code>```</code></td><td>a code block</td></tr>
+        <tr><td><code>- item</code></td><td>a bullet list</td></tr>
+        <tr><td><code>1. item</code></td><td>a numbered list</td></tr>
+        <tr><td><code>- [ ] item</code></td><td>a task you can tick</td></tr>
+        <tr><td><code>[text](https://example.com)</code></td><td>a link, opening in a new tab</td></tr>
+        <tr><td><code>&gt; quote</code></td><td>a blockquote</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Files, folders and finding things</h2>
+    <ul>
+      <li>The home screen shows the <strong>files you changed most recently</strong>,
+        then the top level of the folder. How many recent files are shown is
+        configurable under <strong>Settings</strong>.</li>
+      <li><strong>Search</strong> by file name across every folder. The folder a
+        match lives in is shown beside it.</li>
+      <li><strong>+</strong> creates a file or a folder in the folder you are
+        looking at; open a folder to nest inside it.</li>
+      <li>The trail at the top, and the back arrow, take you back up a level.</li>
+      <li>Only Markdown files are listed. Other files are left alone.</li>
+    </ul>
+
+    <h2>Install it like an app</h2>
+    <p>Taisce is a PWA. Served over HTTPS it installs to a home screen and keeps
+      working when the connection is flaky.</p>
+    <ul>
+      <li><strong>Android / desktop:</strong> open the site, then use the browser
+        menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
+      <li><strong>iOS:</strong> there is no install prompt. Use Share →
+        <em>Add to Home Screen</em>.</li>
+    </ul>
+
+    <h2>Disconnecting</h2>
+    <p><strong>Disconnect</strong> revokes the token at Dropbox as well as
+      forgetting it on this device; you will authorise again next time. Your
+      files are never touched. The token is kept in this browser's local
+      storage, which is why Taisce loads no third-party scripts and sanitises
+      everything it renders.</p>
+
+    <p><a href="../">Back to Taisce</a></p>
+  </article>
+</main>
+
+</body>
+</html>

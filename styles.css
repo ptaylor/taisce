@@ -1,0 +1,768 @@
+:root {
+  color-scheme: light dark;
+
+  /* St Patrick's Blue (#23297a) is the brand colour and the light accent. */
+  --bg: #f5f6fb;
+  --panel: #ffffff;
+  --line: #dde1ef;
+  --fg: #191c38;
+  --dim: #565d85;
+  --accent: #23297a;
+  --on-accent: #ffffff;
+  --accent-soft: #e9ebf9;
+  --ok: #1a7f56;
+  --warn: #94570a;
+  --err: #ad2020;
+  --code-bg: #f0f2fa;
+
+  --radius: 12px;
+  --measure: 44rem;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* The brand blue is too dark to read on a dark page, so the dark accent
+       is a lightened tint of the same hue. */
+    --bg: #0d1026;
+    --panel: #151a3a;
+    --line: #262d59;
+    --fg: #e6e8f7;
+    --dim: #98a0cc;
+    --accent: #8f9bf0;
+    --on-accent: #0d1026;
+    --accent-soft: #1b2148;
+    --ok: #3ddc97;
+    --warn: #ffb020;
+    --err: #ff7a7a;
+    --code-bg: #111530;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 var(--sans);
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+/* ---------------------------------------------------------------- header */
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: calc(0.4rem + env(safe-area-inset-top)) 0.6rem 0.4rem;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.25rem;
+}
+
+#title {
+  font-weight: 650;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#subtitle {
+  min-height: 1em;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#subtitle[data-state="error"] {
+  color: var(--err);
+}
+
+#subtitle[data-state="saving"],
+#subtitle[data-state="editing"] {
+  color: var(--warn);
+}
+
+#subtitle[data-state="saved"] {
+  color: var(--ok);
+}
+
+.icon-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--fg);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.icon-btn svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* The mark, at the left of the toolbar on every screen. */
+.brand {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: 0.15rem;
+  border-radius: 0.4rem;
+}
+
+.logo {
+  display: block;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1rem;
+  border-radius: 1rem;
+}
+
+.icon-btn:hover {
+  background: var(--accent-soft);
+}
+
+.icon-btn:active {
+  transform: scale(0.96);
+}
+
+/* ---------------------------------------------------------------- layout */
+
+/* Four toolbar buttons and a mark have to fit a small phone: tighten them
+   rather than letting the title column collapse. */
+@media (max-width: 480px) {
+  .bar {
+    gap: 0.1rem;
+    padding-inline: 0.5rem;
+  }
+
+  .icon-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .brand {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 1rem 1.1rem calc(3rem + env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------------ auth */
+
+.panel {
+  margin-top: 8vh;
+  padding: 1.6rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.panel h1 {
+  margin: 0 0 0.6rem;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.panel p {
+  color: var(--dim);
+}
+
+.panel code,
+.hint code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 5px;
+}
+
+#redirect-uri {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  background: var(--code-bg);
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  font-size: 0.8rem;
+  margin: 1rem 0 0.35rem;
+}
+
+.primary {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin: 0.6rem 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:active {
+  transform: scale(0.99);
+}
+
+.link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0.4rem 0.6rem;
+}
+
+/* ------------------------------------------------------------------ list */
+
+.file-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.file-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry .label {
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Search hits and recents say which folder they came from. */
+.entry .sub {
+  margin-left: auto;
+  max-width: 45%;
+  overflow: hidden;
+  color: var(--dim);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry.file .label {
+  font-weight: 550;
+}
+
+.entry.folder .label {
+  font-weight: 650;
+}
+
+.entry .glyph {
+  flex: none;
+  width: 1rem;
+  color: var(--dim);
+  font-size: 1.2rem;
+  line-height: 1;
+  text-align: center;
+}
+
+.entry:hover {
+  background: var(--accent-soft);
+}
+
+/* Search: filters by file name across the whole app folder. */
+.search {
+  display: block;
+  margin: 0 0 0.8rem;
+}
+
+.search input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--fg);
+  font: inherit;
+}
+
+.search input::placeholder {
+  color: var(--dim);
+}
+
+.search input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.group-title {
+  margin: 1.3rem 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Breadcrumbs: the trail down to the current folder, root always first. */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.1rem;
+  margin: 0.1rem 0 0.7rem;
+  font-size: 0.85rem;
+}
+
+.crumbs:empty {
+  display: none;
+}
+
+.crumb {
+  padding: 0.15rem 0.3rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.crumb:hover {
+  background: var(--accent-soft);
+}
+
+.crumb.current {
+  color: var(--dim);
+  cursor: default;
+}
+
+.crumbs .sep {
+  color: var(--dim);
+  opacity: 0.6;
+}
+
+.empty {
+  margin-top: 1.2rem;
+  padding: 2rem 1rem;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--dim);
+}
+
+.empty .primary {
+  width: auto;
+  padding-inline: 1.4rem;
+}
+
+.foot {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+/* -------------------------------------------------------------- document */
+
+.doc {
+  padding-bottom: 30vh;
+}
+
+.block {
+  position: relative;
+  margin: 0 -0.6rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 8px;
+  cursor: text;
+}
+
+.block:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.block.editing {
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.block.empty {
+  padding: 2rem 0.6rem;
+  color: var(--dim);
+  text-align: center;
+  border: 1px dashed var(--line);
+  margin-top: 1rem;
+}
+
+.src {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.15rem 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  line-height: 1.6;
+  caret-color: var(--accent);
+}
+
+.doc h1,
+.doc h2,
+.doc h3,
+.doc h4,
+.doc h5,
+.doc h6 {
+  margin: 1.4em 0 0.5em;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.doc h1 {
+  font-size: 1.85rem;
+}
+
+.doc h2 {
+  font-size: 1.4rem;
+}
+
+.doc h3 {
+  font-size: 1.15rem;
+}
+
+.doc p {
+  margin: 0.75em 0;
+}
+
+.doc ul,
+.doc ol {
+  margin: 0.6em 0;
+  padding-left: 1.5em;
+}
+
+.doc li {
+  margin: 0.25em 0;
+}
+
+.doc li::marker {
+  color: var(--dim);
+}
+
+.doc input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin: 0 0.5rem 0 -1.35rem;
+  vertical-align: -0.15rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.doc li:has(> input[type="checkbox"]) {
+  list-style: none;
+}
+
+.doc a {
+  color: var(--accent);
+  text-underline-offset: 2px;
+}
+
+.doc code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 5px;
+}
+
+.doc pre {
+  margin: 1em 0;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.doc pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.86rem;
+}
+
+.doc blockquote {
+  margin: 1em 0;
+  padding: 0.1rem 0 0.1rem 1rem;
+  border-left: 3px solid var(--accent);
+  color: var(--dim);
+}
+
+.doc hr {
+  margin: 1.6em 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.doc table {
+  width: 100%;
+  margin: 1em 0;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.doc th,
+.doc td {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+.doc th {
+  background: var(--code-bg);
+  font-weight: 600;
+}
+
+.doc img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+/* Undo/redo sit within thumb reach while reading a note, not in the toolbar:
+   the toolbar is already full and history is only relevant on this screen. */
+.doc-tools {
+  position: fixed;
+  right: 0.9rem;
+  bottom: calc(0.9rem + env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tool-btn {
+  width: 2.7rem;
+  height: 2.7rem;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  color: var(--fg);
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+/* --------------------------------------------------------------- dialogs */
+
+.sheet {
+  width: min(30rem, calc(100vw - 2rem));
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--fg);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+.sheet::backdrop {
+  background: rgba(6, 12, 22, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.sheet h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.15rem;
+}
+
+.sheet h3 {
+  margin: 1.4rem 0 0.4rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.sheet menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin: 1.2rem 0 0;
+  padding: 0;
+}
+
+.sheet menu .primary {
+  width: auto;
+  margin: 0;
+  padding: 0.6rem 1.2rem;
+}
+
+.where {
+  margin: -0.4rem 0 0.9rem;
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.kinds {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+
+.kinds legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.kinds label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 0.92rem;
+}
+
+.kinds label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.kinds input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.field {
+  display: block;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+}
+
+.field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.err {
+  margin: 0.7rem 0 0;
+  color: var(--err);
+  font-size: 0.9rem;
+}
+
+/* ----------------------------------------------------------------- toast */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  max-width: min(30rem, calc(100vw - 2rem));
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fg) 92%, transparent);
+  color: var(--bg);
+  font-size: 0.9rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
