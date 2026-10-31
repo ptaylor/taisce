@@ -50,3 +50,13 @@ test('relative image references resolve against the note, absolute URLs do not',
   assert.equal(resolveImagePath('/notes/ideas.md', 'data:image/png;base64,AAA'), null);
   assert.equal(resolveImagePath('/notes/ideas.md', ''), null);
 });
+
+test('a reference cannot walk out of the note\'s folder', () => {
+  assert.equal(resolveImagePath('/notes/ideas.md', '../secret.png'), null);
+  assert.equal(resolveImagePath('/notes/ideas.md', 'assets/../../secret.png'), null);
+  assert.equal(resolveImagePath('/notes/ideas.md', '../../../../etc/passwd'), null);
+  assert.equal(resolveImagePath('/notes/ideas.md', 'assets/./a.png'), null);
+  assert.equal(resolveImagePath('/notes/ideas.md', '/notes/assets/../secret.png'), null);
+  // Leading ./ is normal, not traversal.
+  assert.equal(resolveImagePath('/notes/ideas.md', './assets/a.png'), '/notes/assets/a.png');
+});

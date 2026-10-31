@@ -52,6 +52,12 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if [[ "$BRANCH" != "main" ]]; then
+  echo "Publish from main only — currently on ${BRANCH}." >&2
+  exit 1
+fi
+
 # A half-finished run leaves the tag behind; say so rather than failing later
 # with "tag already exists" after the version has been stamped.
 if git rev-parse --verify "refs/tags/${NEXT_VERSION}" >/dev/null 2>&1; then
@@ -104,7 +110,7 @@ else
 fi
 
 git push origin "$COMMIT:refs/heads/${PAGES_BRANCH}"
-git push origin "$(git rev-parse --abbrev-ref HEAD)"
+git push origin "$BRANCH"
 git push origin "$NEXT_VERSION"
 
 echo

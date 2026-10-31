@@ -132,7 +132,7 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
 ### DOMPurify (vendored)
 
 - **Role**: sanitises the HTML marked produces before it reaches the DOM.
-- **Version**: 3.2.4, pinned as `vendor/purify.es.mjs`. Licence: Apache-2.0 /
+- **Version**: 3.4.17, pinned as `vendor/purify.es.mjs`. Licence: Apache-2.0 /
   MPL-2.0, in `vendor/dompurify.LICENSE`.
 - **Best Practices**:
   - Every rendered block goes through `renderMarkdown`; there is no other
@@ -142,6 +142,11 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     app's own window.
   - DOMPurify needs a DOM. In Node it is importable but unusable, which is why
     `createRenderer` takes a `sanitize` override and the tests inject one.
+  - **Keep it current.** OSV listed 22 advisories against the 3.2.4 build we
+    shipped, including mutation-XSS via re-contextualisation — the exact
+    `sanitize()` → `innerHTML` pattern this app uses. Check
+    `POST https://api.osv.dev/v1/query` for the pinned version before assuming
+    a vendored copy is safe, and re-vendor rather than patching by hand.
 - **Docs**: [DOMPurify](https://github.com/cure53/DOMPurify)
 
 ### PWA — Web App Manifest + service worker
@@ -200,6 +205,11 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
   - The token lives in `localStorage` because there is no backend. "Disconnect"
     revokes it at Dropbox and forgets it locally. Never log a token, and never
     put one in a URL.
+  - **That storage is shared.** `ptaylor.github.io` is one origin for every
+    project site on the account, so any other page there can read
+    `taisce.refresh` — verified, not theoretical. A custom domain is the only
+    real isolation; until then, treat every other project on the domain as part
+    of this app's attack surface, and keep them free of third-party scripts.
 - **Docs**: [OAuth guide (PKCE, refresh tokens)](https://developers.dropbox.com/oauth-guide) ·
   [HTTP API reference](https://www.dropbox.com/developers/documentation/http/documentation) ·
   [App Console](https://www.dropbox.com/developers/apps)
@@ -309,6 +319,14 @@ Rules:
   or a screenshot of a Dropbox product in this app; if that ever changes, use
   only the approved assets from <https://brand.dropbox.com/>. Keep the
   non-affiliation line in `README.md`, `docs/index.html` and `docs/privacy.html`.
+- **Notes are untrusted input, including their images.** A note must never
+  cause a request: remote images are converted to links *before* the markup is
+  inserted (an `<img>` with a remote `src` fetches even inside a detached
+  element), relative images are parked on a blank pixel until they are fetched
+  with the user's token, and `style`/`id`/`name` attributes are stripped by the
+  sanitizer. The meta Content-Security-Policy is the second line of defence —
+  keep it, and remember `style-src` needs `'unsafe-inline'` only because the
+  editor sets `textarea.style.height`.
 - **Nothing renders unsanitised.** `renderMarkdown` is the only path to
   `innerHTML`; a note can come from someone else's Dropbox.
 - **Colours live in `:root`, built on St Patrick's Blue.** `#23297a`

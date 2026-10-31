@@ -45,7 +45,11 @@ export function resolveImagePath(filePath, src) {
   if (!raw) return null;
   if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(raw)) return null;
 
-  const withoutQuery = decodeURIComponent(raw.split('#')[0].split('?')[0]);
+  const withoutQuery = decodeURIComponent(raw.split('#')[0].split('?')[0]).replace(/^(?:\.\/)+/, '');
+
+  // A note may only point at a sibling asset, never walk out of its folder.
+  if (withoutQuery.split('/').some((part) => part === '..' || part === '.')) return null;
+
   if (withoutQuery.startsWith('/')) return normaliseDir(withoutQuery) || null;
-  return joinPath(parentDir(filePath), withoutQuery.replace(/^\.\//, ''));
+  return joinPath(parentDir(filePath), withoutQuery);
 }

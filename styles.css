@@ -605,6 +605,17 @@ main {
   border-radius: 8px;
 }
 
+/* A remote image is never fetched, only linked. */
+.doc a.remote-image {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
 /* Undo/redo sit within thumb reach while reading a note, not in the toolbar:
    the toolbar is already full and history is only relevant on this screen. */
 .doc-tools {
