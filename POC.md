@@ -238,7 +238,7 @@ Save triggers: debounce, `blur` on a line, `visibilitychange` → hidden, and
 | Logout | ✘ | "Logout" (forget tokens locally, keep the Dropbox grant) vs "Disconnect" (revoke, as the POC does). Confirm the intended difference. |
 | Icons 64×64, 256×256, README, favicon | ✔ sizes, ✘ artwork | The POC's icon pipeline and file set are exactly right; the mark is "Buail" branded and needs replacing with a Taisce mark. |
 | App website with instructions | ✘ | A separate static page (marketing + install + how to use), published with the app. |
-| PWA at `/taisce/`, GitHub Actions → `public` | ✘ | No CI exists. The POC only ever ran locally. Everything must stay relative because of the sub-path. |
+| PWA at `/taisce/`, script → `public` | ✘ | No publish script exists. The POC only ever ran locally. Everything must stay relative because of the sub-path. |
 | Dropbox app "Taisce" (`be0wdpfwojgf4p3`) | Different app | Register the two redirect URIs for the new app; decide App folder vs Full Dropbox; confirm scopes. The POC's App-folder choice is the privacy-preserving default. |
 
 ## Traps this POC already paid for

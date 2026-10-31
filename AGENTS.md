@@ -28,7 +28,8 @@ comes after that path works.
 Known gaps, in the order they are likely to bite:
 
 - No code, no icons, no manifest, no service worker.
-- The GitHub Pages deployment (Actions → `public` branch) does not exist yet.
+- The GitHub Pages deployment (`publish.sh` → `public` branch → Pages) does not
+  exist yet.
 - Dropbox scopes and the registered redirect URIs are not yet recorded anywhere
   in the repository; whichever commit wires up OAuth must record both.
 
@@ -41,7 +42,7 @@ worse than a missing one.
 Once the static site exists, these are the intended entry points:
 
 ```sh
-python3 -m http.server 8000   # local preview at http://localhost:8000
+python3 -m http.server 8080   # local preview at http://localhost:8080
 npm test                      # node --test, no runtime dependencies
 ```
 
@@ -55,6 +56,7 @@ served.
 | --- | --- |
 | `REQUIREMENTS.md` | Scope: file formats, settings, icons, host URL, Dropbox app. The "what". |
 | `POC.md` | What the earlier Dropbox proof of concept proved, how it worked, and the traps it paid for. Reference, not a dependency. |
+| `PLAN.md` | The phased implementation plan: decisions, milestones, acceptance criteria and risks. |
 | `README.md` | The user-facing front door. Keep it in step with behaviour you change. |
 | `AGENTS.md` | This file — conventions for working in the repository. |
 | `LICENSE` | MIT. |
@@ -62,8 +64,9 @@ served.
 
 The application does not exist yet. The intended shape, when it does, is a
 static site at the repository root — `index.html`, `js/` (ES modules), `icons/`,
-`manifest.webmanifest`, `sw.js` — plus `.github/workflows/` holding the Pages
-deployment. Update this table in the commit that creates each entry.
+`manifest.webmanifest`, `sw.js` — plus `publish.sh` at the root. There is no
+`.github/workflows/`: Pages deploys the published branch itself. Update this
+table in the commit that creates each entry.
 
 ## Technology Stack
 
@@ -121,7 +124,7 @@ deployment. Update this table in the commit that creates each entry.
     not add the secret to the App Console configuration either — use PKCE.
   - `redirect_uri` must match a value registered in the App Console exactly, so
     two are registered: `https://ptaylor.github.io/taisce/` and
-    `http://localhost:8000/`. A trailing-slash difference is enough to fail
+    `http://localhost:8080/`. A trailing-slash difference is enough to fail
     authorisation.
   - Access tokens are short-lived. Request `token_access_type=offline` to get a
     refresh token, and refresh on `401` rather than prompting the user again.
@@ -145,24 +148,28 @@ deployment. Update this table in the commit that creates each entry.
   [HTTP API reference](https://www.dropbox.com/developers/documentation/http/documentation) ·
   [App Console](https://www.dropbox.com/developers/apps)
 
-### GitHub Pages via GitHub Actions
+### GitHub Pages (published branch)
 
 - **Role**: hosting. The deployed app is <https://ptaylor.github.io/taisce/>.
-- **Version**: GitHub-hosted runners (`ubuntu-latest`) and the official
-  `actions/deploy-pages`/`actions/upload-pages-artifact` actions, pinned to a
-  major version.
+- **Version**: no pinned runtime — the deploy uses GitHub Pages' own managed
+  pipeline, which is pre-configured and not authored here.
 - **Best Practices**:
-  - `main` is the working branch and is never served. A workflow publishes a
-    fixed whitelist of static files to the `public` branch; GitHub Pages is
-    pointed at `public` / `(root)` once, in repository settings.
-  - The whitelist is an allow-list, never a deny-list: `test/`, `docs/` and the
-    workflow itself must not be reachable from the site.
+  - **Two halves, kept separate.** `publish.sh` does the versioning work:
+    increment the version, commit it, tag the release, push `main`, and push a
+    fixed whitelist of static files to the `public` branch. GitHub Pages then
+    serves `public` (`Deploy from a branch` → `/(root)`), which is what actually
+    deploys the site.
+  - **This repository authors no workflow.** Pages' built-in Actions deploy the
+    branch; do not add a competing `pages` workflow unless the requirement
+    changes, or the site has two deployment paths that can disagree.
+  - The whitelist is an allow-list, never a deny-list: `test/`, `tools/` and
+    `.github/` must not be reachable from the site.
   - The `public` branch is generated output. Never commit to it by hand and
     never merge it back.
   - Deploying is not the same as verifying: open the deployed URL after the
     first deploy and check the app loads from the `/taisce/` sub-path.
-- **Docs**: [Publishing with a custom GitHub Actions workflow](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) ·
-  [actions/deploy-pages](https://github.com/actions/deploy-pages)
+- **Docs**: [Configuring a publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) ·
+  [About GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)
 
 ### Node.js (tests only)
 
