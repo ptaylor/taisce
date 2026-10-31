@@ -1,4 +1,4 @@
-const CACHE = 'taisce-v0.1';
+const CACHE = 'taisce-v0.2';
 const SHELL = [
   './',
   './index.html',
@@ -22,6 +22,7 @@ const SHELL = [
   './vendor/purify.es.mjs',
   './docs/',
   './docs/index.html',
+  './docs/privacy.html',
   './manifest.webmanifest',
   './icons/icon.svg',
   './icons/icon-192.png',
