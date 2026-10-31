@@ -1,17 +1,19 @@
 :root {
   color-scheme: light dark;
 
-  --bg: #f7f8fa;
+  /* St Patrick's Blue (#23297a) is the brand colour and the light accent. */
+  --bg: #f5f6fb;
   --panel: #ffffff;
-  --line: #e2e6ec;
-  --fg: #16202e;
-  --dim: #5f6d7f;
-  --accent: #0b6bcb;
-  --accent-soft: #e8f1fc;
-  --ok: #1a8f5f;
-  --warn: #a86200;
-  --err: #b42323;
-  --code-bg: #f1f4f8;
+  --line: #dde1ef;
+  --fg: #191c38;
+  --dim: #565d85;
+  --accent: #23297a;
+  --on-accent: #ffffff;
+  --accent-soft: #e9ebf9;
+  --ok: #1a7f56;
+  --warn: #94570a;
+  --err: #ad2020;
+  --code-bg: #f0f2fa;
 
   --radius: 12px;
   --measure: 44rem;
@@ -21,17 +23,20 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b1220;
-    --panel: #111a2b;
-    --line: #1e2a41;
-    --fg: #e7edf7;
-    --dim: #8b9bb4;
-    --accent: #6fb0ff;
-    --accent-soft: #16243b;
+    /* The brand blue is too dark to read on a dark page, so the dark accent
+       is a lightened tint of the same hue. */
+    --bg: #0d1026;
+    --panel: #151a3a;
+    --line: #262d59;
+    --fg: #e6e8f7;
+    --dim: #98a0cc;
+    --accent: #8f9bf0;
+    --on-accent: #0d1026;
+    --accent-soft: #1b2148;
     --ok: #3ddc97;
     --warn: #ffb020;
     --err: #ff7a7a;
-    --code-bg: #0e1727;
+    --code-bg: #111530;
   }
 }
 
@@ -191,7 +196,7 @@ main {
   border: 0;
   border-radius: 10px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   font: inherit;
   font-weight: 600;
   cursor: pointer;

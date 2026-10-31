@@ -23,12 +23,12 @@ done
 # 64 and 256 are the two sizes Dropbox accepts for app branding.
 
 # Android adaptive icon: full-bleed background, art inside the 80% safe zone.
-magick -size 512x512 "xc:#0b1220" \
+magick -size 512x512 "xc:#23297a" \
   \( "$TMP/base.png" -resize 512x512 -resize 80% \) -gravity center -composite \
   -depth 8 PNG32:"icons/icon-maskable-512.png"
 
 # iOS applies its own mask, so the touch icon is full-bleed too.
-magick -size 180x180 "xc:#0b1220" \
+magick -size 180x180 "xc:#23297a" \
   \( "$TMP/base.png" -resize 180x180 -resize 86% \) -gravity center -composite \
   -depth 8 PNG32:"icons/apple-touch-icon.png"
 

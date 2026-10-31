@@ -285,8 +285,13 @@ Rules:
   a list or bold text. Any affordance added must stay optional.
 - **Nothing renders unsanitised.** `renderMarkdown` is the only path to
   `innerHTML`; a note can come from someone else's Dropbox.
-- **Colours live in `:root`.** Keep the palette in one place so the CSS, the
-  manifest `theme_color` and the meta theme colours cannot disagree.
+- **Colours live in `:root`, built on St Patrick's Blue.** `#23297a`
+  ([encycolorpedia](https://encycolorpedia.com/23297a)) is the brand colour and
+  the light-mode accent; dark mode uses a lighter tint of the same hue because
+  the brand blue is unreadable on a dark page, and pairs it with `--on-accent`
+  so button text stays legible. Keep the palette in one place so the CSS, the
+  manifest `theme_color`, the meta theme colours and `icons/icon.svg` cannot
+  disagree.
 - **Verify before claiming done.** Run the tests and load the page — a static
   site has no compiler to catch a broken module path, and the deployed
   sub-path is where relative URLs go wrong.
