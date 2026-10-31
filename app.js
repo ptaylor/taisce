@@ -92,7 +92,9 @@ async function uploadPastedImage(file) {
     if (!(error instanceof ConflictError)) throw error;
   }
 
-  const name = imageFileName(file.type);
+  // Two pastes inside one second would otherwise collide, and an upload is
+  // created rather than renamed, so the second would fail.
+  const name = imageFileName(file.type, Date.now(), Math.random().toString(36).slice(2, 6));
   const target = joinPath(dir, name);
   await provider.uploadFile(target, file);
   imageUrls.delete(target);

@@ -17,13 +17,14 @@ export function imageExtension(type) {
   return EXTENSIONS[String(type || '').toLowerCase()] || 'png';
 }
 
-export function imageFileName(type, now = Date.now()) {
+export function imageFileName(type, now = Date.now(), suffix = '') {
   const date = new Date(now);
   const pad = (value) => String(value).padStart(2, '0');
   const stamp =
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
-  return `${stamp}.${imageExtension(type)}`;
+  const tail = suffix ? `-${suffix}` : '';
+  return `${stamp}${tail}.${imageExtension(type)}`;
 }
 
 /** The folder that holds images for a given note. */

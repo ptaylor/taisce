@@ -24,6 +24,14 @@ test('file names are timestamped and carry the right extension', () => {
   assert.equal(imageFileName('image/jpeg', Date.now()).endsWith('.jpg'), true);
 });
 
+test('a suffix keeps two pastes in the same second apart', () => {
+  const now = Date.UTC(2026, 9, 31, 12, 4, 5);
+  const first = imageFileName('image/png', now, 'a1b2');
+  const second = imageFileName('image/png', now, 'c3d4');
+  assert.notEqual(first, second);
+  assert.match(first, /-a1b2\.png$/);
+});
+
 test('assets live beside the note, not at the root', () => {
   assert.equal(assetDirFor('/notes/ideas.md'), '/notes/assets');
   assert.equal(assetDirFor('/welcome.md'), '/assets');
