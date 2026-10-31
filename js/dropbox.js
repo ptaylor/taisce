@@ -18,9 +18,9 @@ export class DropboxProvider {
   constructor(appKey) {
     this.appKey = appKey;
     this.label = 'Dropbox';
-    this.disconnectLabel = 'Disconnect Dropbox';
+    this.disconnectLabel = 'Disconnect from Dropbox';
     this.disconnectBody =
-      'Forgets the tokens stored on this device and revokes them at Dropbox, ' +
+      'Forgets the tokens stored on this device and revokes them with Dropbox, ' +
       'so you will need to authorise again next time. Your files are not touched.';
   }
 

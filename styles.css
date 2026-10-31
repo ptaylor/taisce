@@ -231,6 +231,14 @@ main {
   overflow-wrap: anywhere;
 }
 
+.disclaimer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--dim);
+  font-size: 0.78rem;
+}
+
 .hint {
   font-size: 0.8rem;
   margin: 1rem 0 0.35rem;

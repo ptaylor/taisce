@@ -166,7 +166,7 @@ export function isSignedIn() {
   return Boolean(store.refresh);
 }
 
-/** Forget the tokens on this device. Does not revoke them at Dropbox. */
+/** Forget the tokens on this device. Does not revoke them with Dropbox. */
 export function signOut() {
   store.refresh = null;
   store.access = null;

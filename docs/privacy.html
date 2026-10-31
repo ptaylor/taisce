@@ -28,14 +28,14 @@
     <h2>What Taisce is</h2>
     <p>Taisce is a static web application. There is no Taisce account, no Taisce
       server and no Taisce database. Your notes are stored in your own Dropbox
-      and are read and written directly from your browser using Dropbox's API.</p>
+      account and are read and written directly from your browser using the Dropbox API.</p>
 
     <h2>What Taisce accesses</h2>
     <ul>
       <li><strong>Only the app folder.</strong> The Dropbox app is registered as
         an <em>App folder</em> app, so it can see and change files in
-        <code>Apps/Taisce</code> in your Dropbox — never the rest of your
-        account.</li>
+        <code>Apps/Taisce</code> in your Dropbox account — never the rest of
+        it.</li>
       <li><strong>Permissions requested</strong>: <code>files.metadata.read</code>
         (list files and folders), <code>files.content.read</code> (open a note or
         an image) and <code>files.content.write</code> (save a note, create a
@@ -50,13 +50,13 @@
         short-lived access token in <code>localStorage</code>, plus two
         preferences (how many recent files to show, how many undo steps to keep).
         No note content is kept in the browser once you leave the page.</li>
-      <li><strong>In your Dropbox</strong>: your notes, and pictures you paste
+      <li><strong>In your Dropbox account</strong>: your notes, and pictures you paste
         into a note, which are uploaded to an <code>assets</code> folder beside
         that note.</li>
       <li><strong>On our servers</strong>: nothing. We do not operate a server
         for this app, and there is no analytics, advertising, tracking pixel or
         third-party script. The Markdown renderer is bundled with the app; the
-        only network requests it makes are to Dropbox's API, plus the files of
+        only network requests it makes are to the Dropbox API, plus the files of
         the app itself.</li>
     </ul>
 
@@ -67,13 +67,13 @@
 
     <h2>Revoking access and deleting data</h2>
     <ul>
-      <li><strong>Disconnect</strong> in the app revokes the token at Dropbox and
+      <li><strong>Disconnect</strong> in the app revokes the token with Dropbox and
         forgets it on the device. Clearing the site's data in your browser does
         the same locally.</li>
       <li>You can also remove the app from
         <a href="https://www.dropbox.com/account/connected_apps" target="_blank" rel="noreferrer">Connected apps</a>
         in your Dropbox account settings.</li>
-      <li>Your notes remain in your Dropbox until you delete them there. Taisce
+      <li>Your notes remain in your Dropbox account until you delete them there. Taisce
         holds no copy.</li>
     </ul>
 
@@ -93,10 +93,14 @@
       or problems: open an issue at
       <a href="https://github.com/ptaylor/taisce/issues" target="_blank" rel="noreferrer">github.com/ptaylor/taisce</a>.</p>
 
-    <p>Dropbox's own handling of your data is described in the
+    <p>How Dropbox handles your data is described in the
       <a href="https://www.dropbox.com/privacy" target="_blank" rel="noreferrer">Dropbox privacy policy</a>.</p>
 
     <p><a href="../">Back to Taisce</a></p>
+
+    <p class="disclaimer">Taisce is not affiliated with or sponsored by Dropbox,
+      Inc. “Dropbox” is a trademark of Dropbox, Inc., used here only to describe
+      compatibility.</p>
   </article>
 </main>
 
