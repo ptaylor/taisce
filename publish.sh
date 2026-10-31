@@ -52,6 +52,14 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+# A half-finished run leaves the tag behind; say so rather than failing later
+# with "tag already exists" after the version has been stamped.
+if git rev-parse --verify "refs/tags/${NEXT_VERSION}" >/dev/null 2>&1; then
+  echo "Tag ${NEXT_VERSION} already exists — a previous publish stopped part-way." >&2
+  echo "Delete it (git tag -d ${NEXT_VERSION}) or raise the version, then retry." >&2
+  exit 1
+fi
+
 # --- Stamp the version -----------------------------------------------------
 # The shell cache is network-first, but the cache name still has to change so a
 # stale copy cannot be served to an installed device.
@@ -82,11 +90,18 @@ for entry in "${SITE_FILES[@]}"; do
 done
 
 TREE=$(GIT_INDEX_FILE="$TMP_INDEX" git write-tree)
-PARENT=()
+PARENT=""
 if git rev-parse --verify "origin/${PAGES_BRANCH}" >/dev/null 2>&1; then
-  PARENT=(-p "$(git rev-parse "origin/${PAGES_BRANCH}")")
+  PARENT="$(git rev-parse "origin/${PAGES_BRANCH}")"
 fi
-COMMIT=$(git commit-tree "$TREE" "${PARENT[@]}" -m "Publish ${NEXT_VERSION}")
+
+# macOS ships bash 3.2, where an empty array expanded under `set -u` is an
+# unbound variable. Keep this branch, not an array.
+if [[ -n "$PARENT" ]]; then
+  COMMIT=$(git commit-tree "$TREE" -p "$PARENT" -m "Publish ${NEXT_VERSION}")
+else
+  COMMIT=$(git commit-tree "$TREE" -m "Publish ${NEXT_VERSION}")
+fi
 
 git push origin "$COMMIT:refs/heads/${PAGES_BRANCH}"
 git push origin "$(git rev-parse --abbrev-ref HEAD)"
