@@ -1,7 +1,7 @@
 {
   "name": "Taisce — Markdown notes",
   "short_name": "Taisce",
-  "description": "Read and edit Markdown notes stored in your own Dropbox.",
+  "description": "Read and edit Markdown notes stored in your own Dropbox account.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

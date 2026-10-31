@@ -299,6 +299,16 @@ Rules:
   failed to upload is worse than no link. Relative image sources are parked on a
   blank pixel until the authenticated fetch resolves, or the browser logs a 404
   for a path the web server does not have.
+- **Dropbox is an adjective, not a noun.** Write "your Dropbox account", "the
+  Dropbox app folder", "compatible with Dropbox" — never "your Dropbox",
+  "Dropbox's files", or the name pluralised or possessive. The
+  [branding guidelines](https://www.dropbox.com/branding) require the word mark
+  to be a capitalised adjective, and the
+  [developer branding guide](https://docs.dropboxapi.com/dropbox-api/docs/developer-resources/branding-guide)
+  is a condition of production approval. Never use the Dropbox logo, its blue,
+  or a screenshot of a Dropbox product in this app; if that ever changes, use
+  only the approved assets from <https://brand.dropbox.com/>. Keep the
+  non-affiliation line in `README.md`, `docs/index.html` and `docs/privacy.html`.
 - **Nothing renders unsanitised.** `renderMarkdown` is the only path to
   `innerHTML`; a note can come from someone else's Dropbox.
 - **Colours live in `:root`, built on St Patrick's Blue.** `#23297a`

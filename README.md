@@ -1,18 +1,18 @@
 <p align="center"><img src="icons/icon-512.png" alt="Taisce icon" width="96" /></p>
 
-# Taisce — Markdown notes in your own Dropbox
+# Taisce — Markdown notes in your Dropbox account
 
 > *taisce* — Irish: a hoard, a store, a treasure.
 
 Taisce is a small web app for reading and writing Markdown files that live in
-your own Dropbox. It renders the file — headings, lists, code, links, task
+your own Dropbox account. It renders the file — headings, lists, code, links, task
 lists — and lets you edit it where you read it: tap a paragraph, type, and the
 change is already saved. Tick a task item and the file changes. It installs like
 an app (it is a PWA), works on a phone, and keeps every file where it already
 belongs.
 
 There is no account with us, no database, and no server of ours in the middle:
-the app is a static site, and it talks to Dropbox directly from your browser.
+the app is a static site, and it talks to the Dropbox API directly from your browser.
 
 ## How to use it
 
@@ -38,8 +38,8 @@ the app is a static site, and it talks to Dropbox directly from your browser.
   recently (Settings controls how many), and the search box matches file names
   across every folder, showing where each match lives.
 - **Connect once.** The app only ever sees its own folder in your Dropbox
-  (`Apps/Taisce`), never the rest of your account.
-- **Disconnect** revokes the token at Dropbox and forgets it on the device. Your
+  account (`Apps/Taisce`), never the rest of it.
+- **Disconnect** revokes the token with Dropbox and forgets it on the device. Your
   files are never touched.
 
 ## Status
@@ -49,7 +49,7 @@ navigation, rendered Markdown, in-place editing with autosave, interactive task
 lists, new files and folders, recent files, filename search, undo/redo, pasted
 images, the guide at [`docs/`](./docs/index.html), icons and the publish script.
 Not yet done, and deliberately so: offline writing (a save while offline errors
-and keeps your text) and any sharing beyond Dropbox itself.
+and keeps your text) and any sharing beyond your Dropbox account.
 [`PLAN.md`](./PLAN.md) has the detail; [`POC.md`](./POC.md) records the proof of
 concept this was built from.
 
@@ -131,13 +131,13 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
 
 ## Privacy
 
-- Your notes stay in your Dropbox. Nothing is sent anywhere else — no analytics,
+- Your notes stay in your Dropbox account. Nothing is sent anywhere else — no analytics,
   no third-party scripts; the Markdown renderer is vendored in `vendor/`.
 - The Dropbox refresh token lives in this browser's `localStorage`. That is a
   deliberate trade for having no backend: any script running on this origin
   could read it, which is why there are no third-party scripts and everything
   rendered from a file is sanitised.
-- Disconnecting revokes the token at Dropbox as well as forgetting it locally.
+- Disconnecting revokes the token with Dropbox as well as forgetting it locally.
 - The full policy is at
   [`docs/privacy.html`](./docs/privacy.html) — written for the Dropbox
   production review, and accurate about the one thing that matters: notes never
@@ -147,6 +147,8 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
 
 MIT (see [`LICENSE`](./LICENSE)). The vendored libraries keep their own licences
 in [`vendor/`](./vendor).
+
+Taisce is not affiliated with or sponsored by Dropbox, Inc. "Dropbox" is a trademark of Dropbox, Inc., used here only to describe compatibility.
 
 ---
 
