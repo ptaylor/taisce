@@ -1,0 +1,10 @@
+{
+  "name": "taisce",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Markdown notes in your own Dropbox. Installs as an app.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
