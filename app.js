@@ -25,6 +25,7 @@ const state = {
   file: null,
   index: null,
   query: '',
+  countedQuery: '',
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
   recentsOpen: true,
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
@@ -83,6 +84,9 @@ async function resolveImage(src) {
     imageUrls.set(path, url);
     return url;
   } catch {
+    // Remembered as missing, or every re-render asks Dropbox again for a file
+    // that is not there.
+    imageUrls.set(path, null);
     return null;
   }
 }
@@ -186,7 +190,12 @@ function makeEntry(item, { sub = '', onOpen }) {
 function openSearchHit(hit) {
   // Where the file was found is the useful part: the recents list and the
   // search results both land here, so the two paths are counted apart.
-  trackEvent(state.query ? 'open-from-search' : 'open-from-recent');
+  if (state.query) {
+    countSearch();
+    trackEvent('open-from-search');
+  } else {
+    trackEvent('open-from-recent');
+  }
   void openFile({ name: hit.name, path: hit.path, type: 'file' });
 }
 
@@ -266,6 +275,7 @@ function renderList() {
 async function loadList(dir = state.dir) {
   state.dir = normaliseDir(dir);
   state.query = '';
+  state.countedQuery = '';
   $('#search').value = '';
   setTitle('Taisce');
   setScreen('list', { back: Boolean(state.dir) });
@@ -277,8 +287,12 @@ async function loadList(dir = state.dir) {
   $('#search-empty').hidden = true;
 
   try {
-    const [entries] = await Promise.all([provider.list(state.dir), state.dir ? null : ensureIndex()]);
-    state.entries = entries;
+    // The recents list and the search index only exist at the root; when they
+    // are needed the two requests overlap rather than queue.
+    const listing = provider.list(state.dir);
+    const indexed = state.dir ? null : ensureIndex();
+    state.entries = await listing;
+    await indexed;
 
     // Typing during a load is easy on a phone. Do not lose it: the query wins,
     // and the index is fetched if this folder did not already need one.
@@ -300,7 +314,6 @@ async function loadList(dir = state.dir) {
 }
 
 async function openFile(file) {
-  trackEvent('file-open');
   await engine.flush();
   engine.close();
 
@@ -317,6 +330,7 @@ async function openFile(file) {
     const clean = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     editor.setText(clean);
     engine.open({ path: file.path, text: clean, rev });
+    trackEvent('file-open');
     setStatus('loaded');
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
@@ -442,12 +456,16 @@ async function openShare() {
   if (!file) return;
 
   resetShare();
-  $('#share-where').textContent = file.name === '' ? 'This file' : file.name;
+  $('#share-where').textContent = file.name || 'This file';
   $('#share-note').textContent = 'Asking Dropbox for the link…';
   const dialog = $('#share-sheet');
   if (!dialog.open) dialog.showModal();
 
   try {
+    // The link points at the file as Dropbox holds it, so anything typed but
+    // not yet uploaded has to go first — otherwise the recipient reads a note
+    // that is already out of date.
+    await engine.flush();
     const known = sharedLinks.get(file.path);
     const url = known || viewableLink(await provider.shareLink(file.path));
     sharedLinks.set(file.path, url);
@@ -468,13 +486,11 @@ async function openShare() {
       $('#share-note').textContent =
         'This device was connected before Taisce could share files. Reconnect to allow it.';
       $('#share-reconnect').hidden = false;
-      return undefined;
+      return;
     }
     trackEvent('error-share');
     $('#share-note').textContent = error.message || 'could not create a link';
-    return undefined;
   }
-  return undefined;
 }
 
 async function disconnect() {
@@ -493,7 +509,7 @@ async function disconnect() {
   state.file = null;
   state.dir = '';
   sharedLinks.clear();
-  for (const url of imageUrls.values()) URL.revokeObjectURL(url);
+  for (const url of imageUrls.values()) if (url) URL.revokeObjectURL(url);
   imageUrls.clear();
 
   if (MOCK) {
@@ -522,16 +538,25 @@ async function runSearch(value) {
     return;
   }
   setStatus('loading');
-  trackEvent('search');
   try {
     await ensureIndex();
     renderList();
-    if (!$('#search-empty').hidden) trackEvent('search-empty');
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-search');
     setStatus('error', error.message || 'search failed');
   }
+}
+
+// One search is one query the reader finished, not one pause in typing: the
+// debounced filter runs on every keystroke and counting that would measure the
+// pause, not the search. A committed query is counted once, however it was
+// finished — Enter, or opening one of the hits.
+function countSearch() {
+  if (!state.query || state.countedQuery === state.query) return;
+  state.countedQuery = state.query;
+  trackEvent('search');
+  if (!$('#search-empty').hidden) trackEvent('search-empty');
 }
 
 function openSettings() {
@@ -658,7 +683,13 @@ async function boot() {
   $('#search').addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.target.value = '';
+      state.countedQuery = '';
       void runSearch('');
+      return;
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void runSearch(event.target.value).then(countSearch);
     }
   });
 

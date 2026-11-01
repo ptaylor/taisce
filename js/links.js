@@ -15,10 +15,19 @@
 // leaves a link uneditable or offers to edit characters that belong to the next
 // word. `test/links.test.js` renders a corpus and asserts the two agree.
 
-const ANGLE_AUTOLINK = /^<([a-zA-Z][a-zA-Z0-9+.-]*:[^\s<>]+)>/;
+// Sticky rather than anchored: `lastIndex` is set to the position being
+// examined, so the scan never has to slice the source — one substring per
+// character is a lot of garbage for a paragraph.
+const ANGLE_AUTOLINK = /<([a-zA-Z][a-zA-Z0-9+.-]*:[^\s<>]+)>/y;
 // marked's inline.gfm.url, minus the `email` placeholder.
-const BARE_URL = /^(?:(?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9-]+\.?)+[^\s<]*/i;
-const BARE_EMAIL = /^[A-Za-z0-9._+-]+@[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/;
+const BARE_URL = /(?:(?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9-]+\.?)+[^\s<]*/iy;
+const BARE_EMAIL = /[A-Za-z0-9._+-]+@[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/y;
+
+/** Match a sticky pattern at `at`, or null. */
+function matchAt(pattern, source, at) {
+  pattern.lastIndex = at;
+  return pattern.exec(source);
+}
 // marked's `_backpedal`: the trailing punctuation a bare URL gives back.
 const BACKPEDAL = /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/;
 const NEEDS_ANGLE_BRACKETS = /[\s()<>]/;
@@ -171,7 +180,7 @@ export function findLinks(source) {
     }
 
     if (char === '<') {
-      const match = ANGLE_AUTOLINK.exec(source.slice(i));
+      const match = matchAt(ANGLE_AUTOLINK, source, i);
       if (match) {
         const href = match[1];
         links.push({
@@ -207,10 +216,8 @@ export function findLinks(source) {
       continue;
     }
 
-    const rest = source.slice(i);
-
     if (nextAt[i] <= LOCAL_PART_LIMIT) {
-      const address = BARE_EMAIL.exec(rest);
+      const address = matchAt(BARE_EMAIL, source, i);
       if (address) {
         links.push({
           form: 'address',
@@ -226,7 +233,7 @@ export function findLinks(source) {
       }
     }
 
-    const url = BARE_URL.exec(rest);
+    const url = matchAt(BARE_URL, source, i);
     if (url) {
       const text = trimBareUrl(url[0]);
       if (text.length > 0) {

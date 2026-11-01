@@ -103,16 +103,6 @@ export function createEditor({
     return doc.body.innerHTML;
   }
 
-  function taskStatesOf(blockIndex) {
-    const block = parseBlocks(text)[blockIndex];
-    if (!block) return [];
-    return block.source
-      .split('\n')
-      .map((line) => line.match(/^(\s*(?:[-*+]|\d{1,9}[.)])\s+\[)([ xX])(\])/))
-      .filter(Boolean)
-      .map((match) => match[2].toLowerCase() === 'x');
-  }
-
   // A rendered link is matched to its Markdown by position: anchors come out in
   // source order, so the nth anchor is the nth link. When the counts disagree
   // (raw HTML anchors in the note, say) the block keeps plain web links rather
@@ -151,7 +141,9 @@ export function createEditor({
         el.innerHTML = sandboxHtml(renderMarkdown(block.source));
         if (block.type !== 'code') labelLinks(el, block.source);
 
-        const states = taskStatesOf(index);
+        // The boxes and the toggles have to agree about which task is which,
+        // so both come from the same function in blocks.js.
+        const states = taskStates(block);
         el.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
           if (i >= states.length) return;
           box.disabled = false;
@@ -451,8 +443,9 @@ export function createEditor({
     }
 
     trackEvent('task-toggle');
-    const updated = parseBlocks(text)[blockIndex];
-    edits.set(blockIndex, { source: updated.source, type: updated.type });
+    // One character changed in place: the block's span is unchanged, so there
+    // is nothing to re-parse.
+    edits.set(blockIndex, { source: text.slice(block.start, block.end), type: block.type });
     onStatus('editing');
     onChange(text);
     render();

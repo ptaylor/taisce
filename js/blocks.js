@@ -176,5 +176,3 @@ export function setTaskChecked(text, block, itemIndex, checked) {
   if (current === next) return text;
   return text.slice(0, at) + next + text.slice(at + 1);
 }
-
-export const BLOCK_TYPES = ['heading', 'paragraph', 'list', 'code', 'quote', 'table', 'rule'];

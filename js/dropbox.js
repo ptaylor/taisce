@@ -77,13 +77,22 @@ export class DropboxProvider {
    * @param {string} dir
    * @returns {Promise<{name: string, path: string, type: 'folder'|'file'}[]>}
    */
-  async list(dir = '') {
-    let page = await this.rpc('files/list_folder', { path: dir, recursive: false, limit: 2000 });
+  /**
+   * Every entry `files/list_folder` will give us, following `has_more` cursors.
+   * @param {{path: string, recursive: boolean}} arg
+   */
+  async listAll(arg) {
+    let page = await this.rpc('files/list_folder', { ...arg, limit: 2000 });
     const entries = [...page.entries];
     while (page.has_more) {
       page = await this.rpc('files/list_folder/continue', { cursor: page.cursor });
       entries.push(...page.entries);
     }
+    return entries;
+  }
+
+  async list(dir = '') {
+    const entries = await this.listAll({ path: dir, recursive: false });
 
     return entries
       .filter((entry) => entry['.tag'] === 'folder' || (entry['.tag'] === 'file' && /\.md$/i.test(entry.name)))
@@ -104,12 +113,7 @@ export class DropboxProvider {
    * @returns {Promise<{name: string, path: string, modified: number}[]>}
    */
   async index() {
-    let page = await this.rpc('files/list_folder', { path: '', recursive: true, limit: 2000 });
-    const entries = [...page.entries];
-    while (page.has_more) {
-      page = await this.rpc('files/list_folder/continue', { cursor: page.cursor });
-      entries.push(...page.entries);
-    }
+    const entries = await this.listAll({ path: '', recursive: true });
 
     return entries
       .filter((entry) => entry['.tag'] === 'file' && /\.md$/i.test(entry.name))
