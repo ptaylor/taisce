@@ -475,11 +475,6 @@ main {
   padding-inline: 1.4rem;
 }
 
-.foot {
-  margin-top: 2rem;
-  text-align: center;
-}
-
 /* -------------------------------------------------------------- document */
 
 .doc {
@@ -895,6 +890,61 @@ main {
   margin: -0.4rem 0 0.9rem;
   font-size: 0.85rem;
   color: var(--dim);
+}
+
+/* The help sheet opens with the app itself: mark, name, version. */
+.about {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.about-logo {
+  flex: none;
+  border-radius: 10px;
+}
+
+.about h2 {
+  margin: 0 0 0.15rem;
+}
+
+.about-version {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-line {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+
+.about-tagline {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+
+.about-report {
+  display: inline-block;
+  margin-top: 0.1rem;
+}
+
+/* Signing out is not a preference, so it sits under a rule of its own. */
+.settings-account {
+  margin-top: 0.2rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
+}
+
+.settings-account h3 {
+  margin: 0 0 0.35rem;
+}
+
+.link.danger {
+  color: var(--err);
 }
 
 .kinds {

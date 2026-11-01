@@ -17,7 +17,7 @@
 <link rel="icon" href="./icons/icon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
-<meta name="app-version" content="v0.12">
+<meta name="app-version" content="v0.13">
 </head>
 <body>
 
@@ -34,7 +34,13 @@
       <path fill="currentColor" fill-rule="evenodd" d="M10.33 2.55L13.67 2.55L13.86 5.05L16.13 6.10L17.51 4.14L19.86 6.49L18.24 8.40L19.09 10.75L21.45 10.33L21.45 13.67L18.95 13.86L17.90 16.13L19.86 17.51L17.51 19.86L15.60 18.24L13.25 19.09L13.67 21.45L10.33 21.45L10.14 18.95L7.87 17.90L6.49 19.86L4.14 17.51L5.76 15.60L4.91 13.25L2.55 13.67L2.55 10.33L5.05 10.14L6.10 7.87L4.14 6.49L6.49 4.14L8.40 5.76L10.75 4.91ZM12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/>
     </svg>
   </button>
-  <button id="help-button" class="icon-btn" type="button" aria-label="Help">?</button>
+  <button id="help-button" class="icon-btn" type="button" aria-label="Help and about">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9.1" fill="none" stroke="currentColor" stroke-width="1.7"/>
+      <circle cx="12" cy="7.7" r="1.15" fill="currentColor"/>
+      <path d="M12 11.1v6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+    </svg>
+  </button>
   <button id="refresh" class="icon-btn" type="button" aria-label="Reload">&#8635;</button>
 </header>
 
@@ -89,9 +95,6 @@
       <button id="empty-new" class="primary" type="button">Create something</button>
     </div>
     <p id="search-empty" class="empty" hidden>No files match that name.</p>
-    <div class="foot">
-      <button id="disconnect" class="link" type="button">Disconnect</button>
-    </div>
   </section>
 
   <section id="screen-file" hidden>
@@ -144,6 +147,11 @@
       <button id="settings-save" class="primary" type="submit">Save</button>
     </menu>
   </form>
+  <div class="settings-account">
+    <h3 id="account-title">Dropbox</h3>
+    <p id="account-note" class="where"></p>
+    <button id="disconnect" class="link danger" type="button">Disconnect from Dropbox</button>
+  </div>
 </dialog>
 
 <dialog id="confirm" class="sheet">
@@ -157,8 +165,16 @@
   </form>
 </dialog>
 
-<dialog id="help" class="sheet">
-  <h2>How to use Taisce</h2>
+<dialog id="help" class="sheet" tabindex="-1">
+  <div class="about">
+    <img class="about-logo" src="./icons/icon-192.png" alt="" width="56" height="56" aria-hidden="true">
+    <div>
+      <h2>Taisce <span id="help-version" class="about-version"></span></h2>
+      <p class="about-line">Markdown notes in your own Dropbox account</p>
+    </div>
+  </div>
+  <p class="about-tagline"><em>taisce</em> — Irish: a hoard, a store, a treasure.</p>
+  <h3>How to use it</h3>
   <p>Tap any paragraph to edit it. The Markdown you type is the formatting:</p>
   <ul>
     <li><code>## A heading</code> — a heading</li>
@@ -195,6 +211,8 @@
   </ul>
   <p><a href="./docs/" target="_blank" rel="noreferrer">Read the full guide</a> ·
      <a href="./docs/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a></p>
+  <p><a class="about-report" href="https://github.com/ptaylor/taisce/issues/new"
+        target="_blank" rel="noopener">🐛 Report a bug or suggest a feature</a></p>
   <menu>
     <button id="help-close" class="primary" type="button">Close</button>
   </menu>

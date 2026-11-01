@@ -414,6 +414,7 @@ async function submitNewFile(event) {
 async function disconnect() {
   const ok = await ask({ title: `${provider.disconnectLabel}?`, body: provider.disconnectBody, ok: provider.disconnectLabel });
   if (!ok) return;
+  if ($('#settings').open) $('#settings').close();
 
   await engine.flush();
   engine.close();
@@ -437,7 +438,12 @@ async function disconnect() {
 }
 
 function showHelp() {
-  $('#help').showModal();
+  const dialog = $('#help');
+  dialog.showModal();
+  // The first focusable thing in here is a link at the bottom, and focusing it
+  // scrolls the sheet past the name and the version it is meant to open with.
+  dialog.focus();
+  dialog.scrollTop = 0;
 }
 
 let searchTimer = 0;
@@ -479,6 +485,11 @@ function saveSettings(event) {
 async function boot() {
   $('#redirect-uri').textContent = redirectUri();
   $('#disconnect').textContent = provider.disconnectLabel;
+  $('#account-title').textContent = MOCK ? 'Demo data' : 'Dropbox';
+  $('#account-note').textContent = provider.disconnectBody;
+
+  const version = document.querySelector('meta[name="app-version"]')?.content;
+  if (version) $('#help-version').textContent = version;
 
   $('#connect').addEventListener('click', () => {
     void startSignIn(APP_CONFIG.appKey);
