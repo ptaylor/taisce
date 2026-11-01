@@ -1,5 +1,6 @@
 import { parseBlocks, applyBlockEdit, setTaskChecked, taskStates } from './blocks.js';
 import { createHistory } from './history.js';
+import { detectSlash, expandTemplate, matchTemplates } from './templates.js';
 import { renderMarkdown } from './markdown.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
@@ -121,7 +122,7 @@ export function createEditor({
       const empty = document.createElement('div');
       empty.className = 'block empty';
       empty.dataset.index = '0';
-      empty.textContent = 'This file is empty. Tap here to write.';
+      empty.textContent = 'This file is empty. Tap here, then type / for templates.';
       container.appendChild(empty);
     } else {
       blocks.forEach((block, index) => {
@@ -202,6 +203,7 @@ export function createEditor({
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
 
     const commit = () => {
+      closeMenu();
       if (editing !== index) return;
       if (span.source !== before) {
         history.record({ start: span.start, before, after: span.source });
@@ -209,6 +211,93 @@ export function createEditor({
       }
       render();
     };
+
+    let menu = null;
+    let options = [];
+    let active = 0;
+    let slash = null;
+
+    function closeMenu() {
+      if (menu) menu.remove();
+      menu = null;
+      options = [];
+      slash = null;
+      active = 0;
+    }
+
+    function paintMenu() {
+      if (!menu) return;
+      menu.replaceChildren();
+
+      options.forEach((template, index) => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = index === active ? 'slash-item active' : 'slash-item';
+        row.setAttribute('role', 'option');
+        row.setAttribute('aria-selected', index === active ? 'true' : 'false');
+
+        const label = document.createElement('span');
+        label.className = 'slash-label';
+        label.textContent = template.label;
+
+        const hint = document.createElement('code');
+        hint.className = 'slash-hint';
+        hint.textContent = template.hint;
+
+        row.append(label, hint);
+        // Keep the caret in the textarea so the chosen text appears at the slash.
+        row.addEventListener('mousedown', (event) => event.preventDefault());
+        row.addEventListener('click', () => choose(index));
+        menu.appendChild(row);
+      });
+    }
+
+    function positionMenu() {
+      if (!menu) return;
+      const gap = 6;
+      menu.style.top = `${textarea.offsetTop + textarea.offsetHeight + gap}px`;
+
+      // Flip above the block when the keyboard would otherwise cover it.
+      const box = menu.getBoundingClientRect();
+      if (box.bottom > window.innerHeight - 8 && textarea.offsetTop > box.height + gap) {
+        menu.style.top = `${textarea.offsetTop - box.height - gap}px`;
+      }
+    }
+
+    function updateMenu() {
+      const found = detectSlash(textarea.value, textarea.selectionStart);
+      if (!found) return closeMenu();
+
+      const matches = matchTemplates(found.query);
+      if (!matches.length) return closeMenu();
+
+      slash = found;
+      options = matches;
+
+      if (!menu) {
+        menu = document.createElement('div');
+        menu.className = 'slash-menu';
+        menu.setAttribute('role', 'listbox');
+        menu.setAttribute('aria-label', 'Insert a template');
+        blockEl.appendChild(menu);
+      }
+
+      if (active >= options.length) active = 0;
+      paintMenu();
+      positionMenu();
+    }
+
+    function choose(index) {
+      const template = options[index];
+      if (!template || !slash) return;
+
+      const { text, caret } = expandTemplate(template);
+      textarea.setRangeText(text, slash.start, slash.end, 'end');
+      textarea.setSelectionRange(slash.start + caret, slash.start + caret);
+      closeMenu();
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.focus();
+    }
 
     textarea.addEventListener('input', () => {
       const next = applyBlockEdit(text, span, textarea.value);
@@ -220,11 +309,44 @@ export function createEditor({
       autosize(textarea);
       onStatus('editing');
       onChange(text);
+      updateMenu();
+    });
+
+    textarea.addEventListener('click', updateMenu);
+    textarea.addEventListener('keyup', (event) => {
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) updateMenu();
     });
 
     textarea.addEventListener('blur', commit);
 
     textarea.addEventListener('keydown', (event) => {
+      if (menu) {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          active = (active + 1) % options.length;
+          paintMenu();
+          positionMenu();
+          return;
+        }
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          active = (active - 1 + options.length) % options.length;
+          paintMenu();
+          positionMenu();
+          return;
+        }
+        if (event.key === 'Enter' || event.key === 'Tab') {
+          event.preventDefault();
+          choose(active);
+          return;
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeMenu();
+          return;
+        }
+      }
+
       if (event.key === 'Escape') {
         event.preventDefault();
         textarea.blur();
