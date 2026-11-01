@@ -17,7 +17,7 @@
 <link rel="icon" href="./icons/icon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
-<meta name="app-version" content="v0.14">
+<meta name="app-version" content="v0.15">
 </head>
 <body>
 
@@ -61,9 +61,10 @@
           <li>Create a <em>Scoped access</em>, <em>App folder</em> app at
             <a href="https://www.dropbox.com/developers/apps" target="_blank" rel="noreferrer">dropbox.com/developers/apps</a>.</li>
           <li>Permissions: <code>files.metadata.read</code>,
-            <code>files.content.read</code>, <code>files.content.write</code>.
-            Taisce does not use <code>account_info.read</code>; remove it if your
-            app already has it.</li>
+            <code>files.content.read</code>, <code>files.content.write</code>,
+            plus <code>sharing.read</code> and <code>sharing.write</code> for the
+            Share button. Taisce does not use <code>account_info.read</code>;
+            remove it if your app already has it.</li>
           <li>Add the redirect URI below under <em>Settings → OAuth 2</em>.</li>
           <li>Put the app key in <code>js/config.js</code> and reload.</li>
         </ol>
@@ -104,6 +105,14 @@
   <section id="screen-file" hidden>
     <article id="blocks" class="doc"></article>
     <div class="doc-tools">
+      <button id="share" class="tool-btn" type="button" aria-label="Share this file">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                stroke-linejoin="round" d="M12 3.4v10.2M8.4 6.9 12 3.3l3.6 3.6"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"
+                stroke-linejoin="round" d="M5.4 12.6v6.1a1.9 1.9 0 0 0 1.9 1.9h9.4a1.9 1.9 0 0 0 1.9-1.9v-6.1"/>
+        </svg>
+      </button>
       <button id="undo" class="tool-btn" type="button" aria-label="Undo" disabled>&#8630;</button>
       <button id="redo" class="tool-btn" type="button" aria-label="Redo" disabled>&#8631;</button>
     </div>
@@ -158,6 +167,19 @@
   </div>
 </dialog>
 
+<dialog id="share-sheet" class="sheet">
+  <h2>Share</h2>
+  <p id="share-where" class="where"></p>
+  <input id="share-url" class="share-url" type="url" readonly aria-label="Shared link">
+  <p id="share-note" class="where"></p>
+  <menu>
+    <button id="share-close" class="link" type="button">Close</button>
+    <button id="share-reconnect" class="primary" type="button" hidden>Reconnect</button>
+    <button id="share-send" class="link" type="button" hidden>Share…</button>
+    <button id="share-copy" class="primary" type="button" disabled>Copy link</button>
+  </menu>
+</dialog>
+
 <dialog id="confirm" class="sheet">
   <form method="dialog">
     <h2 id="confirm-title">Are you sure?</h2>
@@ -208,6 +230,10 @@
     <li>Tap the <strong>Recent</strong> heading to fold that list away. It is open
       to begin with.</li>
     <li>Only Markdown files are listed. Other files in the folder are left alone.</li>
+    <li><strong>Share</strong> (the arrow, bottom right of a note) creates a
+      read-only Dropbox link and offers to copy it or hand it to the phone's
+      share sheet. Anyone with the link can read the note; revoke it in Dropbox
+      to stop that.</li>
   </ul>
   <h3>Install on a phone</h3>
   <ul>

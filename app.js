@@ -4,12 +4,13 @@ import { createMockProvider } from './js/mock.js';
 import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.js';
 import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
-import { AuthError, ConflictError } from './js/errors.js';
+import { AuthError, ConflictError, ScopeError } from './js/errors.js';
 import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
 import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
 import { undoLimit } from './js/history.js';
 import { assetDirFor, imageFileName, markdownImage, resolveImagePath } from './js/images.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
+import { canShare, sharePayload, viewableLink } from './js/share.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
@@ -411,6 +412,57 @@ async function submitNewFile(event) {
   }
 }
 
+// Created once per file per session: Dropbox keeps a link per file, so asking
+// again would only cost a round trip.
+const sharedLinks = new Map();
+
+function resetShare() {
+  $('#share-url').value = '';
+  $('#share-note').textContent = '';
+  $('#share-copy').disabled = true;
+  $('#share-copy').textContent = 'Copy link';
+  $('#share-send').hidden = true;
+  $('#share-reconnect').hidden = true;
+}
+
+async function openShare() {
+  const file = state.file;
+  if (!file) return;
+
+  resetShare();
+  $('#share-where').textContent = file.name === '' ? 'This file' : file.name;
+  $('#share-note').textContent = 'Asking Dropbox for the link…';
+  const dialog = $('#share-sheet');
+  if (!dialog.open) dialog.showModal();
+
+  try {
+    const known = sharedLinks.get(file.path);
+    const url = known || viewableLink(await provider.shareLink(file.path));
+    sharedLinks.set(file.path, url);
+
+    $('#share-url').value = url;
+    $('#share-note').textContent =
+      'Anyone with this link can read this file until you stop sharing it in Dropbox.';
+    $('#share-copy').disabled = false;
+    $('#share-send').hidden = !canShare();
+  } catch (error) {
+    if (error instanceof AuthError) {
+      dialog.close();
+      return showAuth();
+    }
+    if (error instanceof ScopeError) {
+      // The grant predates the sharing permission: authorising again is the fix.
+      $('#share-note').textContent =
+        'This device was connected before Taisce could share files. Reconnect to allow it.';
+      $('#share-reconnect').hidden = false;
+      return undefined;
+    }
+    $('#share-note').textContent = error.message || 'could not create a link';
+    return undefined;
+  }
+  return undefined;
+}
+
 async function disconnect() {
   const ok = await ask({ title: `${provider.disconnectLabel}?`, body: provider.disconnectBody, ok: provider.disconnectLabel });
   if (!ok) return;
@@ -426,6 +478,7 @@ async function disconnect() {
   state.entries = [];
   state.file = null;
   state.dir = '';
+  sharedLinks.clear();
   for (const url of imageUrls.values()) URL.revokeObjectURL(url);
   imageUrls.clear();
 
@@ -512,6 +565,38 @@ async function boot() {
   });
   $('#disconnect').addEventListener('click', () => {
     void disconnect();
+  });
+  $('#share').addEventListener('click', () => {
+    void openShare();
+  });
+  $('#share-close').addEventListener('click', () => $('#share-sheet').close());
+  $('#share-copy').addEventListener('click', async () => {
+    const url = $('#share-url').value;
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      $('#share-copy').textContent = 'Copied';
+      setTimeout(() => {
+        $('#share-copy').textContent = 'Copy link';
+      }, 1600);
+    } catch {
+      // No clipboard permission: the link is on screen to select by hand.
+      $('#share-url').select();
+      $('#share-note').textContent = 'Select the link above and copy it.';
+    }
+  });
+  $('#share-send').addEventListener('click', async () => {
+    const url = $('#share-url').value;
+    if (!url) return;
+    try {
+      await navigator.share(sharePayload($('#share-where').textContent, url));
+    } catch {
+      // Dismissed, or the platform refused it; the link is still on screen.
+    }
+  });
+  $('#share-reconnect').addEventListener('click', () => {
+    $('#share-sheet').close();
+    void startSignIn(APP_CONFIG.appKey);
   });
   $('#help-button').addEventListener('click', showHelp);
   $('#help-close').addEventListener('click', () => $('#help').close());

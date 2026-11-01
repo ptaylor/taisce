@@ -980,6 +980,24 @@ main {
   color: var(--err);
 }
 
+/* The link is on screen as well as on the clipboard: a refused clipboard
+   permission is common enough that the fallback has to be visible. */
+.share-url {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.share-url:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .kinds {
   display: flex;
   gap: 0.5rem;

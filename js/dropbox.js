@@ -1,5 +1,5 @@
 import { accessToken, signOut, store } from './auth.js';
-import { AuthError, ConflictError } from './errors.js';
+import { AuthError, ConflictError, ScopeError } from './errors.js';
 
 const RPC_HOST = 'https://api.dropboxapi.com/2/';
 const CONTENT_HOST = 'https://content.dropboxapi.com/2/';
@@ -31,6 +31,9 @@ export class DropboxProvider {
   async toError(res, { conflictIsSpecial = true } = {}) {
     const message = await messageFrom(res);
     if (res.status === 401) {
+      // A token that lacks a permission is still a good token: forgetting it
+      // would throw the user out of the app over one refused call.
+      if (/missing_scope/.test(message)) return new ScopeError(message);
       store.access = null;
       return new AuthError(message);
     }
@@ -39,7 +42,7 @@ export class DropboxProvider {
     return new Error(message);
   }
 
-  async rpc(endpoint, arg) {
+  async rpc(endpoint, arg, options) {
     const token = await this.token();
     const res = await fetch(RPC_HOST + endpoint, {
       method: 'POST',
@@ -49,7 +52,7 @@ export class DropboxProvider {
       },
       body: JSON.stringify(arg),
     });
-    if (!res.ok) throw await this.toError(res);
+    if (!res.ok) throw await this.toError(res, options);
     return res.json();
   }
 
@@ -173,6 +176,38 @@ export class DropboxProvider {
   async createFolder(path) {
     const result = await this.rpc('files/create_folder_v2', { path, autorename: false });
     return { path: result.metadata.path_lower };
+  }
+
+  /**
+   * The shared link for one file: the one that already exists, or a new public
+   * one. Dropbox keeps links per file, so asking twice yields the same URL —
+   * which is what makes it safe to cache and hand to a share sheet.
+   */
+  async shareLink(path) {
+    const existing = await this.findSharedLink(path);
+    if (existing) return existing;
+
+    try {
+      const created = await this.rpc(
+        'sharing/create_shared_link_with_settings',
+        { path, settings: { audience: 'public', access: 'viewer' } },
+        { conflictIsSpecial: false },
+      );
+      return created.url;
+    } catch (error) {
+      // A link made elsewhere between the two calls, or one carrying settings we
+      // did not ask for. Looking again is more useful than reporting the clash.
+      if (!/shared_link_already_exists/.test(error.message || '')) throw error;
+      const found = await this.findSharedLink(path);
+      if (!found) throw error;
+      return found;
+    }
+  }
+
+  async findSharedLink(path) {
+    const { links = [] } = await this.rpc('sharing/list_shared_links', { path, direct_only: true });
+    const match = links.find((link) => (link.path_lower || '').toLowerCase() === path.toLowerCase());
+    return match ? match.url : null;
   }
 
   /**
