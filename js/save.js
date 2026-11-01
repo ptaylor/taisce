@@ -153,6 +153,5 @@ export function createSaveEngine({
     rev: () => rev,
     text: () => text,
     savedText: () => savedText,
-    hasPendingSave: () => timer !== 0,
   };
 }
