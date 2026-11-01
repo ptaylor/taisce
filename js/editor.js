@@ -178,6 +178,25 @@ export function createEditor({
     editing = index;
     editBlock = span;
 
+    // An explicit way to finish, for a phone where tapping "somewhere else"
+    // is easy to get wrong. Escape does the same thing from a keyboard.
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'done-btn';
+    done.setAttribute('aria-label', 'Done editing');
+    done.innerHTML =
+      '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+      '<path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" ' +
+      'stroke-linejoin="round" d="M5 12.5 10 17.5 19 7"/></svg>';
+    // Commit explicitly rather than relying on blur: a blur that never fires
+    // (tab in the background, focus lost) would leave the tick doing nothing.
+    done.addEventListener('mousedown', (event) => event.preventDefault());
+    done.addEventListener('click', (event) => {
+      event.stopPropagation();
+      commit();
+    });
+    blockEl.appendChild(done);
+
     autosize(textarea);
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -333,6 +352,7 @@ export function createEditor({
 
     if (event.target.closest('a')) return; // let links open
     if (event.target.closest('textarea')) return;
+    if (event.target.closest('.done-btn')) return; // the blur already committed
 
     const block = event.target.closest('.block');
     if (block) beginEdit(block);
