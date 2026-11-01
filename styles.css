@@ -572,6 +572,14 @@ main {
   list-style: none;
 }
 
+/* A finished task reads as finished. The checkbox is a replaced element, so
+   the line is drawn across the label only. */
+.doc li:has(> input[type="checkbox"]:checked) {
+  color: var(--dim);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .doc a {
   color: var(--accent);
   text-underline-offset: 2px;
