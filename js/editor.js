@@ -474,7 +474,7 @@ export function createEditor({
     // this editor was built from no longer points at the same characters.
     if (!block || block.source !== current.source) return;
 
-    const href = current.href.value.trim();
+    const href = current.destination();
     const next =
       href === ''
         ? removeLink(current.source, current.link)
@@ -521,7 +521,10 @@ export function createEditor({
     href.placeholder = 'https://example.com';
     href.spellcheck = false;
     href.setAttribute('aria-label', 'Link address');
-    href.value = link.href;
+    // An address is shown the way it was written; mailto: is added back on
+    // commit rather than put in front of someone typing an email.
+    const isAddress = link.form === 'address';
+    href.value = isAddress ? link.text : link.href;
 
     const actions = document.createElement('div');
     actions.className = 'link-actions';
@@ -536,15 +539,21 @@ export function createEditor({
       return button;
     };
 
+    const destination = () => {
+      const value = href.value.trim();
+      if (value === '') return '';
+      return isAddress && !value.includes('://') && value.includes('@') ? `mailto:${value}` : value;
+    };
+
     action('Open', () => {
-      const target = href.value.trim() || link.href;
+      const target = destination() || link.href;
       dismissLink(true);
       window.open(target, '_blank', 'noopener,noreferrer');
     });
 
     const copy = action('Copy', async () => {
       try {
-        await navigator.clipboard.writeText(href.value.trim() || link.href);
+        await navigator.clipboard.writeText(destination() || link.href);
         copy.textContent = 'Copied';
         setTimeout(() => {
           copy.textContent = 'Copy';
@@ -596,7 +605,17 @@ export function createEditor({
     element.style.top = `${top}px`;
     element.style.left = `${left}px`;
 
-    popover = { element, index, source: block.source, link, label, href, onOutside, onMove };
+    popover = {
+      element,
+      index,
+      source: block.source,
+      link,
+      label,
+      href,
+      destination,
+      onOutside,
+      onMove,
+    };
     document.addEventListener('pointerdown', onOutside, true);
     window.addEventListener('scroll', onMove, true);
     window.addEventListener('resize', onMove);

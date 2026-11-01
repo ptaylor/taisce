@@ -6,14 +6,25 @@
 // leaving every other character of the block untouched.
 //
 // Three shapes count as a link, because the renderer makes all three clickable:
-// `[text](dest)`, `<autolink>` and a bare `https://…` that GFM links for us.
-// Images, inline code and escapes are skipped, so `![alt](x.png)` and
+// `[text](dest)`, `<autolink>` and the bare URLs and addresses that GFM links
+// for us. Images, inline code and escapes are skipped, so `![alt](x.png)` and
 // `` `https://example.com` `` are not offered up as editable links.
+//
+// The bare-URL rules are `marked`'s own, character for character, because the
+// two must agree on where a link ends: if they disagree, the editor either
+// leaves a link uneditable or offers to edit characters that belong to the next
+// word. `test/links.test.js` renders a corpus and asserts the two agree.
 
 const ANGLE_AUTOLINK = /^<([a-zA-Z][a-zA-Z0-9+.-]*:[^\s<>]+)>/;
-const BARE_URL = /^(?:https?:\/\/|www\.)[^\s<]+/i;
-const TRAILING_PUNCTUATION = /[.,;:!?'"]+$/;
+// marked's inline.gfm.url, minus the `email` placeholder.
+const BARE_URL = /^(?:(?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9-]+\.?)+[^\s<]*/i;
+const BARE_EMAIL = /^[A-Za-z0-9._+-]+@[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/;
+// marked's `_backpedal`: the trailing punctuation a bare URL gives back.
+const BACKPEDAL = /(?:[^?!.,:;*_'"~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_'"~)]+(?!$))+/;
 const NEEDS_ANGLE_BRACKETS = /[\s()<>]/;
+// The longest local part an address may have, used to skip the address rule
+// quickly for text that cannot contain one.
+const LOCAL_PART_LIMIT = 64;
 
 function escapeLabel(text) {
   return text.replace(/[\\[\]]/g, '\\$&');
@@ -120,25 +131,14 @@ function parseInlineLink(source, open) {
   };
 }
 
-function trimBareEnd(source, start, end) {
-  let at = end;
-  for (;;) {
-    const slice = source.slice(start, at);
-    const punctuation = slice.match(TRAILING_PUNCTUATION);
-    if (punctuation) {
-      at -= punctuation[0].length;
-      continue;
-    }
-    if (slice.endsWith(')')) {
-      const opened = (slice.match(/\(/g) || []).length;
-      const closed = (slice.match(/\)/g) || []).length;
-      if (closed > opened) {
-        at -= 1;
-        continue;
-      }
-    }
-    return at;
-  }
+function trimBareUrl(raw) {
+  let text = raw;
+  let previous;
+  do {
+    previous = text;
+    text = BACKPEDAL.exec(text)?.[0] ?? '';
+  } while (previous !== text);
+  return text;
 }
 
 /**
@@ -148,6 +148,13 @@ function trimBareEnd(source, start, end) {
  */
 export function findLinks(source) {
   const links = [];
+  // Distance to the next "@", so text that cannot hold an address is skipped
+  // without scanning to the end of the block for every character.
+  const nextAt = new Uint32Array(source.length + 1).fill(LOCAL_PART_LIMIT + 1);
+  for (let i = source.length - 1; i >= 0; i -= 1) {
+    nextAt[i] = source[i] === '@' ? 0 : Math.min(nextAt[i + 1] + 1, LOCAL_PART_LIMIT + 1);
+  }
+
   let i = 0;
 
   while (i < source.length) {
@@ -200,14 +207,40 @@ export function findLinks(source) {
       continue;
     }
 
-    if (/[hw]/i.test(char) && !/[\w@]/.test(source[i - 1] || '')) {
-      const match = BARE_URL.exec(source.slice(i));
-      if (match) {
-        const end = trimBareEnd(source, i, i + match[0].length);
-        const raw = source.slice(i, end);
-        const href = /^www\./i.test(raw) ? `http://${raw}` : raw;
-        links.push({ form: 'bare', start: i, end, text: raw, href, hrefStart: i, hrefEnd: end });
-        i = end;
+    const rest = source.slice(i);
+
+    if (nextAt[i] <= LOCAL_PART_LIMIT) {
+      const address = BARE_EMAIL.exec(rest);
+      if (address) {
+        links.push({
+          form: 'address',
+          start: i,
+          end: i + address[0].length,
+          text: address[0],
+          href: `mailto:${address[0]}`,
+          hrefStart: i,
+          hrefEnd: i + address[0].length,
+        });
+        i += address[0].length;
+        continue;
+      }
+    }
+
+    const url = BARE_URL.exec(rest);
+    if (url) {
+      const text = trimBareUrl(url[0]);
+      if (text.length > 0) {
+        const href = /^www\./i.test(text) ? `http://${text}` : text;
+        links.push({
+          form: 'bare',
+          start: i,
+          end: i + text.length,
+          text,
+          href,
+          hrefStart: i,
+          hrefEnd: i + text.length,
+        });
+        i += text.length;
         continue;
       }
     }
@@ -228,7 +261,13 @@ export function editLink(source, link, { text, href }) {
 
   if (link.form !== 'inline') {
     if (nextText === link.text) {
-      return source.slice(0, link.hrefStart) + nextHref + source.slice(link.hrefEnd);
+      // An address is written without its scheme, so a mailto: destination goes
+      // back into the source as the bare address it came from.
+      const target =
+        link.form === 'address' && /^mailto:/i.test(nextHref)
+          ? nextHref.replace(/^mailto:/i, '')
+          : nextHref;
+      return source.slice(0, link.hrefStart) + target + source.slice(link.hrefEnd);
     }
     return source.slice(0, link.start) + linkMarkdown(nextText, nextHref) + source.slice(link.end);
   }

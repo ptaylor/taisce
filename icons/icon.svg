@@ -1,11 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Taisce">
-  <!-- Flat colours only: ImageMagick's built-in SVG renderer does not draw
-       gradients, and these PNGs are rasterised from this file with
-       tools/make-icons.sh. -->
+  <!-- Flat colours only, and no transforms: ImageMagick's built-in SVG renderer
+       ignores rotate(), and these PNGs are rasterised from this file with
+       tools/make-icons.sh. The mark is a page being written on — the app reads,
+       makes and changes files — so the pencil replaces the tick it used to
+       carry, which read as a task list. -->
   <rect width="512" height="512" rx="112" fill="#23297a"/>
-  <rect x="128" y="104" width="256" height="304" rx="34" fill="#ffffff"/>
-  <rect x="168" y="164" width="176" height="22" rx="11" fill="#23297a"/>
-  <rect x="168" y="214" width="136" height="18" rx="9" fill="#c3c8e6"/>
-  <rect x="168" y="256" width="160" height="18" rx="9" fill="#c3c8e6"/>
-  <path d="M164 316 L198 350 L262 278 L284 300 L198 394 L142 338 Z" fill="#1a8f5f"/>
+  <rect x="116" y="92" width="280" height="328" rx="36" fill="#ffffff"/>
+  <rect x="150" y="136" width="150" height="24" rx="12" fill="#23297a"/>
+  <rect x="150" y="184" width="112" height="16" rx="8" fill="#c3c8e6"/>
+  <rect x="150" y="214" width="134" height="16" rx="8" fill="#c3c8e6"/>
+  <path d="M176 400 L225 384 L192 351 Z" fill="#545d9e"/>
+  <path d="M225 384 L332 278 L298 244 L192 351 Z" fill="#23297a"/>
+  <path d="M332 278 L350 260 L316 226 L298 244 Z" fill="#1a8f5f"/>
 </svg>
