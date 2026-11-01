@@ -154,6 +154,35 @@ body {
   border-radius: 1rem;
 }
 
+/* The name is Irish, and a serif italic is the one place it is set apart from
+   the interface type. Sized by context: a wordmark on the connect panel, a
+   heading in the help sheet. */
+.wordmark {
+  font-family: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--accent);
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.brand-row .logo {
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0;
+  border-radius: 0.85rem;
+}
+
+.brand-row .wordmark {
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
 .icon-btn:hover {
   background: var(--accent-soft);
 }
@@ -906,6 +935,10 @@ main {
 
 .about h2 {
   margin: 0 0 0.15rem;
+}
+
+.about .wordmark {
+  font-size: 1.3rem;
 }
 
 .about-version {

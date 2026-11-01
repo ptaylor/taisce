@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#23297a">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1026">
-<meta name="description" content="Markdown notes in your own Dropbox account.">
+<meta name="description" content="View and edit Markdown files in your Dropbox account.">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -47,9 +47,13 @@
 <main>
   <section id="screen-auth" hidden>
     <div class="panel">
-      <img class="logo" src="./icons/icon-192.png" alt="" width="72" height="72" aria-hidden="true">
-      <h1>Markdown notes in your own Dropbox account</h1>
-      <p>Taisce shows the files in its own folder in your Dropbox account and edits them in place. It cannot see anything else in your account.</p>
+      <div class="brand-row">
+        <img class="logo" src="./icons/icon-192.png" alt="" width="56" height="56" aria-hidden="true">
+        <span class="wordmark">Taisce</span>
+      </div>
+      <h1>View and edit Markdown files in your Dropbox account</h1>
+      <p>Taisce allows you to easily create, view and edit Markdown files in your
+        Dropbox account. It cannot see any other files in your account.</p>
       <button id="connect" class="primary" type="button">Connect to Dropbox</button>
       <div id="setup-note" hidden>
         <p><strong>No Dropbox app key configured yet.</strong></p>
@@ -169,8 +173,9 @@
   <div class="about">
     <img class="about-logo" src="./icons/icon-192.png" alt="" width="56" height="56" aria-hidden="true">
     <div>
-      <h2>Taisce <span id="help-version" class="about-version"></span></h2>
-      <p class="about-line">Markdown notes in your own Dropbox account</p>
+      <h2><span class="wordmark">Taisce</span>
+        <span id="help-version" class="about-version"></span></h2>
+      <p class="about-line">View and edit Markdown files in your Dropbox account</p>
     </div>
   </div>
   <p class="about-tagline"><em>taisce</em> — Irish: a hoard, a store, a treasure.</p>
