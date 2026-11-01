@@ -11,6 +11,7 @@ import { undoLimit } from './js/history.js';
 import { assetDirFor, imageFileName, markdownImage, resolveImagePath } from './js/images.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
 import { canShare, sharePayload, viewableLink } from './js/share.js';
+import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
@@ -49,10 +50,14 @@ const engine = createSaveEngine({
   onStatus: (kind, detail) => {
     // A save changes the modified time, so the recent list is stale.
     if (kind === 'saved') state.index = null;
+    if (kind === 'error') trackEvent('error-save');
     setStatus(kind, detail);
   },
   onRemote: (text, info) => {
     editor.setText(text);
+    // A conflict is the one save failure the reader is told about, so it is the
+    // one worth counting: a rise means two devices are racing.
+    trackEvent(info.dropped ? 'conflict-dropped' : 'conflict-merged');
     toast(
       info.dropped
         ? 'Changed elsewhere — reloaded, local edits dropped'
@@ -179,6 +184,9 @@ function makeEntry(item, { sub = '', onOpen }) {
 }
 
 function openSearchHit(hit) {
+  // Where the file was found is the useful part: the recents list and the
+  // search results both land here, so the two paths are counted apart.
+  trackEvent(state.query ? 'open-from-search' : 'open-from-recent');
   void openFile({ name: hit.name, path: hit.path, type: 'file' });
 }
 
@@ -292,6 +300,7 @@ async function loadList(dir = state.dir) {
 }
 
 async function openFile(file) {
+  trackEvent('file-open');
   await engine.flush();
   engine.close();
 
@@ -311,6 +320,7 @@ async function openFile(file) {
     setStatus('loaded');
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
+    trackEvent('error-open');
     setStatus('error', error.message || 'could not open the file');
   }
 }
@@ -379,6 +389,7 @@ async function submitNewFile(event) {
   $('#new-create').disabled = true;
   try {
     if (kind === 'folder') {
+      trackEvent('folder-new');
       await provider.createFolder(joinPath(state.dir, name));
       state.index = null;
       $('#new-file').close();
@@ -388,6 +399,7 @@ async function submitNewFile(event) {
     }
 
     const path = joinPath(state.dir, /\.md$/i.test(name) ? name : `${name}.md`);
+    trackEvent('file-new');
     await provider.create(path, '');
     state.index = null;
     $('#new-file').close();
@@ -451,12 +463,14 @@ async function openShare() {
       return showAuth();
     }
     if (error instanceof ScopeError) {
+      trackEvent('share-scope');
       // The grant predates the sharing permission: authorising again is the fix.
       $('#share-note').textContent =
         'This device was connected before Taisce could share files. Reconnect to allow it.';
       $('#share-reconnect').hidden = false;
       return undefined;
     }
+    trackEvent('error-share');
     $('#share-note').textContent = error.message || 'could not create a link';
     return undefined;
   }
@@ -508,11 +522,14 @@ async function runSearch(value) {
     return;
   }
   setStatus('loading');
+  trackEvent('search');
   try {
     await ensureIndex();
     renderList();
+    if (!$('#search-empty').hidden) trackEvent('search-empty');
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
+    trackEvent('error-search');
     setStatus('error', error.message || 'search failed');
   }
 }
@@ -531,11 +548,21 @@ function saveSettings(event) {
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
   localStorage.setItem(UNDO_KEY, String(state.undoMax));
   editor.setUndoLimit(state.undoMax);
+  trackEvent('settings-save');
   $('#settings').close();
   if (!$('#screen-list').hidden) renderList();
 }
 
 async function boot() {
+  // The demo is how anyone tries the app without an account, and it is thrown
+  // away by the same people who write the code: keep it out of the numbers.
+  configure({ demo: MOCK });
+  if (!MOCK) {
+    trackView('/');
+    const slug = releaseSlug();
+    if (slug) trackView(`/${slug}`);
+  }
+
   $('#redirect-uri').textContent = redirectUri();
   $('#disconnect').textContent = provider.disconnectLabel;
   $('#account-title').textContent = MOCK ? 'Demo data' : 'Dropbox';
@@ -545,13 +572,18 @@ async function boot() {
   if (version) $('#help-version').textContent = version;
 
   $('#connect').addEventListener('click', () => {
+    trackEvent('connect-start');
     void startSignIn(APP_CONFIG.appKey);
   });
   $('#recents-toggle').addEventListener('click', () => {
     state.recentsOpen = !state.recentsOpen;
     applyRecentsOpen();
+    trackEvent('recent-toggle');
   });
-  $('#new').addEventListener('click', showNewFile);
+  $('#new').addEventListener('click', () => {
+    trackEvent('new-open');
+    showNewFile();
+  });
   $('#new-cancel').addEventListener('click', () => $('#new-file').close());
   $('#new-form').addEventListener('submit', (event) => {
     void submitNewFile(event);
@@ -567,6 +599,7 @@ async function boot() {
     void disconnect();
   });
   $('#share').addEventListener('click', () => {
+    trackEvent('share-open');
     void openShare();
   });
   $('#share-close').addEventListener('click', () => $('#share-sheet').close());
@@ -575,6 +608,7 @@ async function boot() {
     if (!url) return;
     try {
       await navigator.clipboard.writeText(url);
+      trackEvent('share-copy');
       $('#share-copy').textContent = 'Copied';
       setTimeout(() => {
         $('#share-copy').textContent = 'Copy link';
@@ -590,6 +624,7 @@ async function boot() {
     if (!url) return;
     try {
       await navigator.share(sharePayload($('#share-where').textContent, url));
+      trackEvent('share-send');
     } catch {
       // Dismissed, or the platform refused it; the link is still on screen.
     }
@@ -598,11 +633,17 @@ async function boot() {
     $('#share-sheet').close();
     void startSignIn(APP_CONFIG.appKey);
   });
-  $('#help-button').addEventListener('click', showHelp);
+  $('#help-button').addEventListener('click', () => {
+    trackEvent('help-open');
+    showHelp();
+  });
   $('#help-close').addEventListener('click', () => $('#help').close());
   $('#undo').addEventListener('click', () => editor.undo());
   $('#redo').addEventListener('click', () => editor.redo());
-  $('#settings-button').addEventListener('click', openSettings);
+  $('#settings-button').addEventListener('click', () => {
+    trackEvent('settings-open');
+    openSettings();
+  });
   $('#settings-close').addEventListener('click', () => $('#settings').close());
   $('#settings-form').addEventListener('submit', saveSettings);
 
@@ -633,6 +674,9 @@ async function boot() {
       navigator.serviceWorker.register('./sw.js').catch(() => {});
     });
   }
+
+  // Installing the app is the one thing a reader does that outlives the visit.
+  window.addEventListener('appinstalled', () => trackEvent('installed'));
 
   if (MOCK) {
     document.body.dataset.mock = '1';

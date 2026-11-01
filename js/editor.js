@@ -3,6 +3,7 @@ import { createHistory } from './history.js';
 import { detectSlash, expandTemplate, matchTemplates } from './templates.js';
 import { editLink, findLinks, isUrl, linkMarkdown, removeLink } from './links.js';
 import { renderMarkdown } from './markdown.js';
+import { trackEvent } from './analytics.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
 
@@ -314,6 +315,7 @@ export function createEditor({
       textarea.setRangeText(text, slash.start, slash.end, 'end');
       textarea.setSelectionRange(slash.start + caret, slash.start + caret);
       closeMenu();
+      trackEvent('template-insert');
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.focus();
     }
@@ -342,6 +344,7 @@ export function createEditor({
       if (from === to || !isUrl(pasted)) return;
       event.preventDefault();
       textarea.setRangeText(linkMarkdown(textarea.value.slice(from, to), pasted), from, to, 'end');
+      trackEvent('link-paste');
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
     textarea.addEventListener('keyup', (event) => {
@@ -447,6 +450,7 @@ export function createEditor({
       notifyHistory();
     }
 
+    trackEvent('task-toggle');
     const updated = parseBlocks(text)[blockIndex];
     edits.set(blockIndex, { source: updated.source, type: updated.type });
     onStatus('editing');
@@ -480,6 +484,7 @@ export function createEditor({
         ? removeLink(current.source, current.link)
         : editLink(current.source, current.link, { text: current.label.value, href });
     if (next === current.source) return;
+    trackEvent(href === '' ? 'link-remove' : 'link-change');
 
     text = applyBlockEdit(text, block, next);
     history.record({ start: block.start, before: current.source, after: next });
@@ -501,6 +506,7 @@ export function createEditor({
     const link = findLinks(block.source)[Number(anchor.dataset.link)];
     if (!link) return false;
 
+    trackEvent('link-open');
     dismissLink(false);
 
     const element = document.createElement('div');
@@ -546,6 +552,7 @@ export function createEditor({
     };
 
     action('Open', () => {
+      trackEvent('link-go');
       const target = destination() || link.href;
       dismissLink(true);
       window.open(target, '_blank', 'noopener,noreferrer');
@@ -554,6 +561,7 @@ export function createEditor({
     const copy = action('Copy', async () => {
       try {
         await navigator.clipboard.writeText(destination() || link.href);
+        trackEvent('link-copy');
         copy.textContent = 'Copied';
         setTimeout(() => {
           copy.textContent = 'Copy';
@@ -657,8 +665,10 @@ export function createEditor({
     try {
       const snippet = await onPasteImage(file);
       if (!snippet) throw new Error('the image could not be uploaded');
+      trackEvent('image-paste');
       insertSnippet(snippet);
     } catch (error) {
+      trackEvent('error-image');
       onStatus('error', error.message || 'image upload failed');
     }
   }
@@ -700,6 +710,7 @@ export function createEditor({
     if (editing !== -1) return false;
     const op = history.undo();
     if (!op) return false;
+    trackEvent('undo');
     text = text.slice(0, op.start) + op.before + text.slice(op.start + op.after.length);
     onChange(text);
     render();
@@ -711,6 +722,7 @@ export function createEditor({
     if (editing !== -1) return false;
     const op = history.redo();
     if (!op) return false;
+    trackEvent('redo');
     text = text.slice(0, op.start) + op.after + text.slice(op.start + op.before.length);
     onChange(text);
     render();

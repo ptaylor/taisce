@@ -67,9 +67,34 @@
         into a note, which are uploaded to an <code>assets</code> folder beside
         that note.</li>
       <li><strong>On our servers</strong>: nothing. We do not operate a server
-        for this app, and there is no analytics, advertising, tracking pixel or
-        third-party script. The Markdown renderer is bundled with the app; the
-        only network requests it makes are to the Dropbox API, plus the files of
+        for this app. There is no advertising and no tracking pixel, and no
+        third-party script is loaded: the Markdown renderer and the analytics
+        counter are both bundled with the app. The only network requests it
+        makes are to the Dropbox API, to GoatCounter (usage counts, described
+        below) and to the files of the app itself.</li>
+    </ul>
+
+    <h2>Usage measurement</h2>
+    <p>Counting how the app is used is the only way to find out which parts are
+      worth keeping, so Taisce sends <strong>anonymous counts</strong> to
+      <a href="https://www.goatcounter.com/" target="_blank" rel="noreferrer">GoatCounter</a>,
+      a privacy-friendly analytics service. It is deliberately limited:</p>
+    <ul>
+      <li><strong>No cookies</strong> are set and nothing is stored on your
+        device for it. GoatCounter does not build a profile or follow you to
+        other sites.</li>
+      <li>What is sent is a <strong>count of an event name</strong> from a fixed
+        list — "a note was opened", "a link was edited", "the slash menu was
+        used", "a save conflicted" — together with the release of the app that
+        sent it. <strong>Never a file name, a folder, a search term, the contents
+        of a note, a shared link, or anything from your Dropbox account.</strong></li>
+      <li>GoatCounter records the page address, referring site, browser, screen
+        width and a <strong>salted hash</strong> of your IP address, which it
+        discards; the salt changes every day. Your IP address is not stored.</li>
+      <li><strong>The demo is not counted.</strong> Opening the app with
+        <code>?mock=1</code> sends nothing at all.</li>
+      <li>The counter is the one request that can be blocked for you: a content
+        blocker that stops <code>taisce.goatcounter.com</code> has no effect on
         the app itself.</li>
     </ul>
 

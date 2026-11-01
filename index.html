@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' blob: data: https://api.dropboxapi.com https://content.dropboxapi.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data: https://taisce.goatcounter.com; font-src 'self'; connect-src 'self' blob: data: https://api.dropboxapi.com https://content.dropboxapi.com https://taisce.goatcounter.com; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#23297a">
@@ -17,6 +17,11 @@
 <link rel="icon" href="./icons/icon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
+<!-- Vendored, not loaded from gc.zgo.at: see vendor/count.js. no_onload because
+     the app decides for itself — the demo (?mock=1) is not counted. -->
+<script data-goatcounter="https://taisce.goatcounter.com/count"
+        data-goatcounter-settings='{"no_onload": true}'
+        src="./vendor/count.js"></script>
 <meta name="app-version" content="v0.15">
 </head>
 <body>
@@ -240,6 +245,8 @@
     <li><strong>Android / desktop:</strong> browser menu → <em>Install app</em> (or <em>Add to Home screen</em>).</li>
     <li><strong>iOS:</strong> Share → <em>Add to Home Screen</em>. There is no install prompt on iOS.</li>
   </ul>
+  <p class="hint">Usage is measured with GoatCounter — no cookies, no personal
+    data, and nothing about your notes. The demo is not counted.</p>
   <p><a href="./docs/" target="_blank" rel="noreferrer">Read the full guide</a> ·
      <a href="./docs/privacy.html" target="_blank" rel="noreferrer">Privacy policy</a></p>
   <p><a class="about-report" href="https://github.com/ptaylor/taisce/issues/new"

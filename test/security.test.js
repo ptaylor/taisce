@@ -25,12 +25,18 @@ test('the published pages carry a policy too', () => {
 
 test('no inline script blocks are left in the shell', () => {
   const html = read('index.html');
-  const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map((match) => match[0]);
+  const scripts = [...html.matchAll(/<script\b([^>]*)>/g)].map((match) => match[1]);
   assert.ok(scripts.length > 0);
-  for (const tag of scripts) {
-    assert.match(tag, /type="module"/);
-    assert.match(tag, /src=/);
+  // Every script is external: an inline block would need 'unsafe-inline' in
+  // script-src, which is the thing the policy exists to avoid.
+  for (const attrs of scripts) {
+    assert.match(attrs, /src=/, `a script tag without src: ${attrs}`);
   }
+  // The app is a module; the vendored GoatCounter counter is a classic script
+  // because count.js is written as one, and it comes from this origin.
+  assert.match(html, /<script[^>]*type="module"[^>]*src="\.\/app\.js"/);
+  assert.match(html, /<script[^>]*src="\.\/vendor\/count\.js"/);
+  assert.doesNotMatch(html, /script[^>]*src="(?:https?:)?\/\//);
 });
 
 test('the sanitizer strips attributes that reach the network or shadow ids', () => {

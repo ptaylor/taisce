@@ -141,16 +141,20 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
 
 ## Privacy
 
-- Your notes stay in your Dropbox account. Nothing is sent anywhere else — no analytics,
-  no third-party scripts; the Markdown renderer is vendored in `vendor/`.
+- Your notes stay in your Dropbox account. Nothing about them leaves it: usage
+  is counted with [GoatCounter](https://www.goatcounter.com/) as anonymous event
+  names only — never a file name, a search term or a note's contents — and the
+  demo is not counted at all. Nothing third-party is *loaded*: the Markdown
+  renderer and the analytics counter are both vendored in `vendor/`.
 - **Opening a note cannot phone home.** Remote images in a note are shown as
   links and never fetched, `style` attributes are stripped, and a
   Content-Security-Policy blocks anything that slips through. Only the note's
   own `assets/` images are loaded — with your token, from Dropbox.
 - The Dropbox refresh token lives in this browser's `localStorage`. That is a
   deliberate trade for having no backend: any script running on this origin
-  could read it, which is why there are no third-party scripts and everything
-  rendered from a file is sanitised.
+  could read it, which is why no third-party script is loaded (the analytics
+  counter is a vendored copy, not `gc.zgo.at`), `script-src` stays `'self'`, and
+  everything rendered from a file is sanitised.
 - Disconnecting revokes the token with Dropbox as well as forgetting it locally.
 - Worth knowing: `ptaylor.github.io` is one origin for every project site on
   this account, and browser storage is per origin. Another project on the same

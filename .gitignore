@@ -37,12 +37,17 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# --- Python: local `python3 -m http.server` helpers only ---
+# --- Python: the GoatCounter report (report/) and `python3 -m http.server` ---
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .python-version
+
+# The report's own virtualenv and its generated output. reports/ holds whatever
+# period was last run — numbers, not source — so it is never committed.
+report/.venv/
+reports/
 
 # --- Test and build output: regenerated on demand ---
 coverage/

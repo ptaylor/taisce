@@ -42,7 +42,12 @@ python3 -m http.server 8080   # serve the app at http://localhost:8080
 npm test                      # node --test, no runtime dependencies
 ./publish.sh --no-push        # show the next version, change nothing
 ./publish.sh                  # bump, tag, push main + tag + public
+report/.venv/bin/python report/goatcounter-report.py --period "this month"
 ```
+
+The report command needs a one-time venv and a `GOATCOUNTER_API_TOKEN` in
+`.env.sh`; see [`report/README.md`](./report/README.md). It is development
+tooling and is never served.
 
 **8080 is not a preference** — it is the local port registered as a Dropbox
 redirect URI, so a server on any other port cannot complete sign-in. Add
@@ -67,6 +72,7 @@ served.
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
 | `js/images.js` | Asset naming, the `assets/` location, image-link resolution. Pure. |
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
+| `js/analytics.js` | The only caller of GoatCounter: guarded `trackView`/`trackEvent`, and the demo switch. |
 | `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor. |
@@ -74,12 +80,13 @@ served.
 | `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
 | `js/ui.js`, `js/errors.js` | Small shared helpers. |
 | `js/config.js` | The app key (a public identifier) and nothing else. |
-| `vendor/` | Pinned `marked` and `DOMPurify`, with their licences. Not a build step. |
+| `vendor/` | Pinned `marked`, `DOMPurify` and GoatCounter's `count.js`, with their licences. Not a build step. |
 | `icons/` | `icon.svg` is the artwork: flat colours, no gradients, no transforms, because ImageMagick rasterises it. Every PNG comes from `tools/make-icons.sh`. |
 | `tools/make-icons.sh` | Rasterises the icon set (needs ImageMagick). |
 | `sw.js`, `manifest.webmanifest` | PWA shell: network-first, cache name bumped by `publish.sh`. |
 | `publish.sh` | Version, tag, push `main` and the site whitelist to `public`. |
 | `test/` | `node --test` suites for the pure modules. |
+| `report/` | The GoatCounter report script and its README. Development only; never served. |
 | `docs/index.html` | The user guide, published with the app; the in-app `?` links to it. |
 | `REQUIREMENTS.md` | Scope, in priority order. The "what". |
 | `PLAN.md` | The phased plan: decisions, milestones, acceptance criteria, risks. |
@@ -251,6 +258,64 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
 - **Docs**: [Configuring a publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) ·
   [About GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)
 
+### GoatCounter (analytics)
+
+- **Role**: privacy-friendly usage measurement — page views plus categorical
+  custom events. The app previously promised "no analytics"; that promise was
+  replaced with a narrower one (anonymous counts only, disclosed in the help
+  sheet, the guide and the privacy policy) when the question "which features
+  are worth keeping" could not be answered any other way.
+- **Version**: `https://taisce.goatcounter.com`, code `taisce`.
+- **Best Practices**:
+  - **The counter is vendored, not loaded from `gc.zgo.at`.** This page holds a
+    long-lived Dropbox refresh token in `localStorage`, and a third-party script
+    running here could read it; `vendor/count.js` keeps `script-src 'self'`
+    intact and is reviewed with the rest of the source. Refresh it from
+    <https://gc.zgo.at/count.js> deliberately, re-applying the provenance header,
+    and check the licence (ISC) while there.
+  - The CSP allows exactly one host for it: `https://taisce.goatcounter.com` in
+    both `connect-src` (the `sendBeacon` POST) and `img-src` (count.js falls back
+    to a 1×1 image when `sendBeacon` is blocked). Widening either further needs a
+    reason in the commit message.
+  - Every call goes through `js/analytics.js` — `trackView` for pageviews,
+    `trackEvent` for events. Both are guarded and never throw: a blocked counter
+    must not break an edit.
+  - **Categorical slugs only.** Never a file name, a folder, a search term, a
+    note's contents or a shared link. GoatCounter also sends `location.search`
+    with every hit, which is safe **because the app has no URL routing** — no
+    note path is ever in the address bar. If routing is ever added, pass the path
+    explicitly and strip the query.
+  - **The demo is not counted.** `boot()` calls `configure({ demo: MOCK })`, so
+    `?mock=1` sends nothing; its numbers would be ours, not readers'.
+  - A visit is **two pageviews**: `/` and `/v<release>`, the second tagged from
+    the `meta[name="app-version"]` that `publish.sh` stamps. The report reads
+    releases from the second only.
+  - Blocking `taisce.goatcounter.com` must remain harmless: no feature and no
+    layout may depend on the counter loading.
+- **Docs**: <https://www.goatcounter.com/> · <https://www.goatcounter.com/api.html>
+
+### GoatCounter report (development only)
+
+- **Role**: `report/goatcounter-report.py` fetches the stats for a period and
+  writes a self-contained HTML report with embedded charts, plus `data.json`.
+  A sibling of `gealach/report/` and `foighne/report/`, same shape and helpers.
+- **Version**: `requests`, `pandas`, `matplotlib` in its own venv
+  (`report/.venv/`, git-ignored). Charts are optional — without them the HTML
+  and JSON are still written.
+- **Best Practices**:
+  - **The vocabulary in the script and the vocabulary in the app are one
+    thing.** The script groups events by question (arriving, files, search,
+    editor, links, sharing, settings, sync, failures). An event it does not
+    recognise is not silently dropped: it is listed in an "Unrecognised events"
+    card and warned about on the console, so a new metric cannot go unread.
+  - `reports/` is generated output and is git-ignored; so is `.env.sh`, which
+    holds `GOATCOUNTER_API_TOKEN`. Never commit either.
+  - `/v0-16` is a release pageview; `/version`, `/verify` and anything else that
+    is not digits-and-dashes is an ordinary page. Keep that rule if the prefix
+    is ever changed.
+- **Docs**: [`report/README.md`](./report/README.md) ·
+  <https://www.goatcounter.com/api.html>
+
 ### Node.js (tests only)
 
 - **Role**: runs `node --test` over the pure modules. It is a development tool,
@@ -316,6 +381,21 @@ Rules:
   re-rendering the document from a parsed tree.
 - **The Markdown you type is the UI.** No toolbar is required to make a heading,
   a list or bold text. Any affordance added must stay optional.
+- **Every new feature asks the metrics question, and the answer goes in the
+  commit.** Does this feature need a new metric, or does it change one that
+  already exists? Three outcomes, all acceptable — but never "not considered":
+  - **A new event** in `js/analytics.js`, with a slug added to the matching group
+    in `report/goatcounter-report.py` **in the same commit**. The report is how a
+    metric is read; an event it does not know appears only in its "Unrecognised
+    events" card, so shipping one without the other is a self-announcing bug.
+  - **A changed event**: a slug renamed, split or retired means the old name stops
+    arriving and the report's group must change with it. Data either side of the
+    change is not comparable — say so in the commit if a comparison matters.
+  - **No metric**, because the feature is too rare, too noisy, or measuring it
+    would say something about the reader rather than the app. Say that in the
+    commit, in one line, so the next person knows it was a decision.
+  Removing a feature retires its events by the same rule. The vocabulary is
+  documented under **GoatCounter** below and must match the code exactly.
 - **A link is edited where it sits.** Clicking a rendered link opens an editor
   for that one link — text, address, copy, open, remove — rather than following
   it; `js/links.js` finds the link's exact span in the block source and splices
