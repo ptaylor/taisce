@@ -67,8 +67,9 @@ served.
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
 | `js/images.js` | Asset naming, the `assets/` location, image-link resolution. Pure. |
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
+| `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
-| `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking. |
+| `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
 | `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
 | `js/ui.js`, `js/errors.js` | Small shared helpers. |
@@ -305,6 +306,15 @@ Rules:
   re-rendering the document from a parsed tree.
 - **The Markdown you type is the UI.** No toolbar is required to make a heading,
   a list or bold text. Any affordance added must stay optional.
+- **A link is edited where it sits.** Clicking a rendered link opens an editor
+  for that one link — text, address, copy, open, remove — rather than following
+  it; `js/links.js` finds the link's exact span in the block source and splices
+  only the label and the destination, so nothing else in the block is rewritten.
+  A rendered anchor is matched to its source by position, and only when the
+  counts agree: if a note uses raw HTML anchors or reference-style links, that
+  block falls back to plain web links rather than risking an edit in the wrong
+  place. Keep that fallback — a wrong edit to someone's words is worse than a
+  missing convenience.
 - **Undo is source ranges, not snapshots.** `js/history.js` records
   `{start, before, after}`; applying ops in reverse keeps offsets valid. Never
   swap this for whole-document snapshots of every keystroke.

@@ -24,7 +24,8 @@ const WELCOME = [
   'const saved = await engine.save();',
   '```',
   '',
-  'A [link](https://www.markdownlang.com/) opens in a new tab.',
+  'A [link](https://www.markdownlang.com/) has its own editor: tap it to change the\n' +
+  'address, copy it or remove it.',
   '',
   'Open the **notes** folder to see nested files.',
 ].join('\n');

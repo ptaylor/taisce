@@ -1,6 +1,7 @@
 import { parseBlocks, applyBlockEdit, setTaskChecked, taskStates } from './blocks.js';
 import { createHistory } from './history.js';
 import { detectSlash, expandTemplate, matchTemplates } from './templates.js';
+import { editLink, findLinks, isUrl, linkMarkdown, removeLink } from './links.js';
 import { renderMarkdown } from './markdown.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
@@ -43,6 +44,7 @@ export function createEditor({
   let text = '';
   let editing = -1;
   let editBlock = null;
+  let popover = null;
   const edits = new Map();
   const history = createHistory(undoLimit);
 
@@ -110,10 +112,26 @@ export function createEditor({
       .map((match) => match[2].toLowerCase() === 'x');
   }
 
+  // A rendered link is matched to its Markdown by position: anchors come out in
+  // source order, so the nth anchor is the nth link. When the counts disagree
+  // (raw HTML anchors in the note, say) the block keeps plain web links rather
+  // than offering an edit that would land in the wrong place.
+  function labelLinks(el, source) {
+    const anchors = [...el.querySelectorAll('a[href]')].filter(
+      (anchor) => !anchor.classList.contains('remote-image'),
+    );
+    const links = findLinks(source);
+    if (anchors.length === 0 || anchors.length !== links.length) return;
+    anchors.forEach((anchor, index) => {
+      anchor.dataset.link = String(index);
+    });
+  }
+
   function render({ keepScroll = true } = {}) {
     const scrollY = window.scrollY;
     const blocks = parseBlocks(text);
 
+    dismissLink(false);
     container.replaceChildren();
     editing = -1;
     editBlock = null;
@@ -130,6 +148,7 @@ export function createEditor({
         el.className = `block ${block.type}`;
         el.dataset.index = String(index);
         el.innerHTML = sandboxHtml(renderMarkdown(block.source));
+        if (block.type !== 'code') labelLinks(el, block.source);
 
         const states = taskStatesOf(index);
         el.querySelectorAll('input[type="checkbox"]').forEach((box, i) => {
@@ -313,6 +332,18 @@ export function createEditor({
     });
 
     textarea.addEventListener('click', updateMenu);
+    // Pasting an address over a selection is how a link is usually made: the
+    // words are already there and the URL is on the clipboard.
+    textarea.addEventListener('paste', (event) => {
+      const data = event.clipboardData;
+      if (!data || data.files.length > 0) return; // pictures are the app's job
+      const pasted = data.getData('text/plain');
+      const { selectionStart: from, selectionEnd: to } = textarea;
+      if (from === to || !isUrl(pasted)) return;
+      event.preventDefault();
+      textarea.setRangeText(linkMarkdown(textarea.value.slice(from, to), pasted), from, to, 'end');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    });
     textarea.addEventListener('keyup', (event) => {
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) updateMenu();
     });
@@ -423,6 +454,164 @@ export function createEditor({
     render();
   }
 
+  // A rendered link is a thing to change, not a thing to leave the note for.
+  // Clicking one opens a small editor anchored to it; the note itself is only
+  // rewritten when the editor closes, so nothing re-renders under the caret.
+  function dismissLink(apply) {
+    if (!popover) return;
+    const current = popover;
+    popover = null;
+    current.element.remove();
+    document.removeEventListener('pointerdown', current.onOutside, true);
+    window.removeEventListener('scroll', current.onMove, true);
+    window.removeEventListener('resize', current.onMove);
+    if (apply) applyLink(current);
+  }
+
+  function applyLink(current) {
+    const block = parseBlocks(text)[current.index];
+    // The document can move on underneath an open editor; if it has, the span
+    // this editor was built from no longer points at the same characters.
+    if (!block || block.source !== current.source) return;
+
+    const href = current.href.value.trim();
+    const next =
+      href === ''
+        ? removeLink(current.source, current.link)
+        : editLink(current.source, current.link, { text: current.label.value, href });
+    if (next === current.source) return;
+
+    text = applyBlockEdit(text, block, next);
+    history.record({ start: block.start, before: current.source, after: next });
+    edits.set(current.index, { source: next, type: block.type });
+    notifyHistory();
+    onStatus('editing');
+    onChange(text);
+    render();
+  }
+
+  function openLink(anchor) {
+    if (anchor.dataset.link === undefined) return false;
+
+    const blockEl = anchor.closest('.block');
+    const index = Number(blockEl?.dataset.index);
+    const block = parseBlocks(text)[index];
+    if (!block) return false;
+
+    const link = findLinks(block.source)[Number(anchor.dataset.link)];
+    if (!link) return false;
+
+    dismissLink(false);
+
+    const element = document.createElement('div');
+    element.className = 'link-pop';
+    element.setAttribute('role', 'dialog');
+    element.setAttribute('aria-label', 'Link');
+
+    const label = document.createElement('input');
+    label.type = 'text';
+    label.className = 'link-field';
+    label.placeholder = 'Text';
+    label.setAttribute('aria-label', 'Link text');
+    label.value = link.text;
+
+    const href = document.createElement('input');
+    href.type = 'url';
+    href.className = 'link-field link-field-url';
+    href.placeholder = 'https://example.com';
+    href.spellcheck = false;
+    href.setAttribute('aria-label', 'Link address');
+    href.value = link.href;
+
+    const actions = document.createElement('div');
+    actions.className = 'link-actions';
+
+    const action = (text, handler, className = 'link-action') => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = text;
+      button.addEventListener('click', handler);
+      actions.appendChild(button);
+      return button;
+    };
+
+    action('Open', () => {
+      const target = href.value.trim() || link.href;
+      dismissLink(true);
+      window.open(target, '_blank', 'noopener,noreferrer');
+    });
+
+    const copy = action('Copy', async () => {
+      try {
+        await navigator.clipboard.writeText(href.value.trim() || link.href);
+        copy.textContent = 'Copied';
+        setTimeout(() => {
+          copy.textContent = 'Copy';
+        }, 1400);
+      } catch {
+        href.select(); // no clipboard permission: the address is there to copy by hand
+      }
+    });
+
+    action(
+      'Remove',
+      () => {
+        href.value = '';
+        dismissLink(true);
+      },
+      'link-action danger',
+    );
+
+    element.append(label, href, actions);
+    element.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissLink(true);
+      }
+    });
+
+    const openedAt = Date.now();
+    const onOutside = (event) => {
+      if (!element.contains(event.target)) dismissLink(true);
+    };
+    // An editor pinned to a rectangle on screen has to close when that
+    // rectangle moves. Ignore the moment it opens: focusing a field on a phone
+    // can scroll the page before the user has touched anything.
+    const onMove = () => {
+      if (Date.now() - openedAt > 250) dismissLink(true);
+    };
+
+    document.body.appendChild(element);
+
+    const rect = anchor.getBoundingClientRect();
+    const box = element.getBoundingClientRect();
+    const gap = 8;
+    let top = rect.bottom + gap;
+    if (top + box.height > window.innerHeight - gap) {
+      top = Math.max(gap, rect.top - box.height - gap);
+    }
+    const left = Math.min(Math.max(gap, rect.left), Math.max(gap, window.innerWidth - box.width - gap));
+    element.style.top = `${top}px`;
+    element.style.left = `${left}px`;
+
+    popover = { element, index, source: block.source, link, label, href, onOutside, onMove };
+    document.addEventListener('pointerdown', onOutside, true);
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+
+    // On a phone the tap already said "I mean this link"; typing is the next
+    // step only if the pointer is a mouse. The address takes the focus because
+    // a link is changed far more often than its words are.
+    if (window.matchMedia?.('(hover: hover) and (pointer: fine)').matches) {
+      href.focus();
+      href.select();
+    }
+
+    return true;
+  }
+
   function insertSnippet(snippet) {
     const textarea = container.querySelector('textarea.src');
     if (textarea) {
@@ -472,7 +661,15 @@ export function createEditor({
       return;
     }
 
-    if (event.target.closest('a')) return; // let links open
+    const anchor = event.target.closest('a');
+    if (anchor) {
+      if (anchor.classList.contains('remote-image')) return; // the image itself opens
+      if (openLink(anchor)) {
+        event.preventDefault();
+        return;
+      }
+      return; // nothing in the source to edit: let the browser follow it
+    }
     if (event.target.closest('textarea')) return;
     if (event.target.closest('.done-btn')) return; // the blur already committed
 

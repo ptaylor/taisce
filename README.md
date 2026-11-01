@@ -25,6 +25,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   stop typing, and when the app is put away. There is no Cancel button either.
 - **Tap a task item** in the rendered file to check or uncheck it. The file is
   updated and saved exactly like any other edit.
+- **Tap a link** to change the words, change the address, copy it, open it in a
+  new tab or remove it. To link words you have already written, select them
+  while the block is open and paste the address over them.
 - **Folders work like folders.** Tap one to go in, use the trail at the top (or
   the back arrow) to come back up. **+** creates a file or a folder in the
   folder you are looking at, so nesting is just a matter of going in first.
@@ -47,7 +50,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 **All four phases are working** — sign-in, folders with nesting and breadcrumb
 navigation, rendered Markdown, in-place editing with autosave, interactive task
 lists, new files and folders, recent files, filename search, undo/redo, pasted
-images, the guide at [`docs/`](./docs/index.html), icons and the publish script.
+images, the slash menu for templates, the link editor, the guide at
+[`docs/`](./docs/index.html), icons and the publish script.
 Not yet done, and deliberately so: offline writing (a save while offline errors
 and keeps your text) and any sharing beyond your Dropbox account.
 [`PLAN.md`](./PLAN.md) has the detail; [`POC.md`](./POC.md) records the proof of

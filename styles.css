@@ -546,6 +546,73 @@ main {
   display: block;
 }
 
+/* A link's editor, pinned to the link. Fixed, so it does not shift the block. */
+.link-pop {
+  position: fixed;
+  z-index: 20;
+  display: grid;
+  gap: 0.25rem;
+  width: min(22rem, calc(100vw - 1rem));
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.link-field {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.link-field-url {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.link-field:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.link-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.15rem;
+}
+
+.link-action {
+  flex: 1;
+  min-height: 2.25rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.link-action:hover {
+  background: var(--accent-soft);
+}
+
+.link-action.danger {
+  color: var(--err);
+}
+
+.link-action.danger:hover {
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+}
+
 .block.empty {
   padding: 2rem 0.6rem;
   color: var(--dim);
