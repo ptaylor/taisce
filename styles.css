@@ -373,6 +373,47 @@ main {
   color: var(--dim);
 }
 
+/* The heading is the disclosure control, so it is a button that still reads as
+   a heading; the padding buys a thumb-sized target without moving the type. */
+.group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: -0.6rem 0;
+  padding: 0.6rem 0.4rem 0.6rem 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.group-toggle:hover {
+  color: var(--fg);
+}
+
+.group-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.group-toggle .chevron {
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.group-toggle[aria-expanded="false"] .chevron {
+  transform: rotate(-90deg);
+}
+
+/* No "Files" heading any more: the gap and the rounded box do the separating. */
+#recents-block:not([hidden]) + .file-list {
+  margin-top: 1.1rem;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

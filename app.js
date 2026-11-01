@@ -24,6 +24,7 @@ const state = {
   index: null,
   query: '',
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
+  recentsOpen: true,
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
 };
 
@@ -111,7 +112,13 @@ function renderCrumbs() {
   const nav = $('#crumbs');
   nav.replaceChildren();
 
-  const trail = breadcrumbs(state.dir);
+  // The root is not a crumb: at the top level there is nowhere to go, and the
+  // app's own name above the search box was only repeating the header. One
+  // folder deep there is nowhere to jump to either, so the trail appears only
+  // once it can take you somewhere — the back arrow covers the single step up.
+  const trail = breadcrumbs(state.dir).slice(1);
+  if (trail.length < 2) return;
+
   trail.forEach((crumb, index) => {
     const last = index === trail.length - 1;
     const node = document.createElement(last ? 'span' : 'button');
@@ -134,6 +141,11 @@ function renderCrumbs() {
     }
     nav.append(node);
   });
+}
+
+function applyRecentsOpen() {
+  $('#recents-toggle').setAttribute('aria-expanded', String(state.recentsOpen));
+  $('#recents').hidden = !state.recentsOpen;
 }
 
 function makeEntry(item, { sub = '', onOpen }) {
@@ -180,7 +192,6 @@ function renderList() {
   const recents = $('#recents');
   const empty = $('#list-empty');
   const searchEmpty = $('#search-empty');
-  const filesTitle = $('#files-title');
 
   list.replaceChildren();
   recents.replaceChildren();
@@ -195,7 +206,6 @@ function renderList() {
     }
     list.appendChild(fragment);
     recentsBlock.hidden = true;
-    filesTitle.hidden = true;
     empty.hidden = true;
     searchEmpty.hidden = hits.length > 0;
     setStatus('ready', `${hits.length} match${hits.length === 1 ? '' : 'es'}`);
@@ -230,7 +240,7 @@ function renderList() {
   }
   list.appendChild(fragment);
 
-  filesTitle.hidden = recent.length === 0;
+  applyRecentsOpen();
   empty.hidden = state.entries.length > 0 || recent.length > 0;
   $('#empty-msg').textContent = state.dir
     ? 'This folder is empty.'
@@ -472,6 +482,10 @@ async function boot() {
 
   $('#connect').addEventListener('click', () => {
     void startSignIn(APP_CONFIG.appKey);
+  });
+  $('#recents-toggle').addEventListener('click', () => {
+    state.recentsOpen = !state.recentsOpen;
+    applyRecentsOpen();
   });
   $('#new').addEventListener('click', showNewFile);
   $('#new-cancel').addEventListener('click', () => $('#new-file').close());

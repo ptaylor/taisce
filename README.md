@@ -28,8 +28,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Tap a link** to change the words, change the address, copy it, open it in a
   new tab or remove it. To link words you have already written, select them
   while the block is open and paste the address over them.
-- **Folders work like folders.** Tap one to go in, use the trail at the top (or
-  the back arrow) to come back up. **+** creates a file or a folder in the
+- **Folders work like folders.** Tap one to go in; the back arrow comes back up,
+  and two levels down a trail lets you jump to an outer folder. **+** creates a file or a folder in the
   folder you are looking at, so nesting is just a matter of going in first.
 - **Undo, without a Save button.** The round buttons at the bottom right (or
   Cmd/Ctrl+Z) step back through block edits; how many steps are kept is a
@@ -38,8 +38,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   the note and linked in relatively, so the note still renders in any other
   Markdown editor.
 - **Finding things.** The home screen lists the files you changed most
-  recently (Settings controls how many), and the search box matches file names
-  across every folder, showing where each match lives.
+  recently (Settings controls how many; tap **Recent** to fold the list away),
+  and the search box matches file names across every folder, showing where each
+  match lives.
 - **Connect once.** The app only ever sees its own folder in your Dropbox
   account (`Apps/Taisce`), never the rest of it.
 - **Disconnect** asks Dropbox to revoke the app’s access and forgets it on the device. Your
