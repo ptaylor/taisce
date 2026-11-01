@@ -314,7 +314,12 @@ Rules:
   counts agree: if a note uses raw HTML anchors or reference-style links, that
   block falls back to plain web links rather than risking an edit in the wrong
   place. Keep that fallback — a wrong edit to someone's words is worse than a
-  missing convenience.
+  missing convenience. `js/links.js` therefore has to recognise exactly what
+  `marked` linkifies — `[text](url)`, `<autolink>`, bare `http(s)`/`ftp`/`www`
+  URLs and bare email addresses, with the same trailing-punctuation rule — or a
+  single unrecognised link disables editing for its whole block. The corpus test
+  in `test/links.test.js` renders notes and asserts the two agree href for
+  href; add to it when you touch either side.
 - **Undo is source ranges, not snapshots.** `js/history.js` records
   `{start, before, after}`; applying ops in reverse keeps offsets valid. Never
   swap this for whole-document snapshots of every keystroke.

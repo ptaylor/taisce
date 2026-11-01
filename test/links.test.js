@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { findLinks, editLink, removeLink, linkMarkdown, isUrl } from '../js/links.js';
+import { createRenderer } from '../js/markdown.js';
 
 const shapes = (source) =>
   findLinks(source).map((link) => ({ form: link.form, text: link.text, href: link.href }));
@@ -53,8 +54,12 @@ test('autolinks and bare URLs count, with trailing punctuation left out', () => 
   assert.equal(other.href, 'https://example.org/b');
 });
 
-test('a URL in the middle of a word is not a link', () => {
-  assert.deepEqual(shapes('see ahttps://example.com'), []);
+test('a URL glued to the word before it is a link, because the renderer says so', () => {
+  // marked breaks the text run before a scheme and links what follows, and an
+  // editor that disagreed would leave the block's links unmatched.
+  assert.deepEqual(shapes('see ahttps://example.com'), [
+    { form: 'bare', text: 'https://example.com', href: 'https://example.com' },
+  ]);
 });
 
 test('editing the address leaves the rest of the block byte-identical', () => {
@@ -106,6 +111,81 @@ test('an edit leaves the neighbouring list items alone', () => {
     editLink(source, link, { href: 'https://b.example' }),
     '- [x] [one](https://b.example)\n- [ ] two\n',
   );
+});
+
+test('ftp and www are recognised the way the renderer recognises them', () => {
+  assert.deepEqual(shapes('ftp://example.com/f here'), [
+    { form: 'bare', text: 'ftp://example.com/f', href: 'ftp://example.com/f' },
+  ]);
+  assert.deepEqual(shapes('www.example.com here'), [
+    { form: 'bare', text: 'www.example.com', href: 'http://www.example.com' },
+  ]);
+});
+
+test('an address the renderer linkifies can be edited too', () => {
+  const source = 'Mail [the team](https://example.com/team) or a.b+c@example.co.uk today.';
+  const links = findLinks(source);
+  assert.deepEqual(
+    links.map((link) => [link.form, link.href]),
+    [
+      ['inline', 'https://example.com/team'],
+      ['address', 'mailto:a.b+c@example.co.uk'],
+    ],
+  );
+  assert.equal(
+    editLink(source, links[1], { href: 'mailto:hello@example.com' }),
+    'Mail [the team](https://example.com/team) or hello@example.com today.',
+  );
+  assert.equal(
+    editLink(source, links[1], { text: 'email us' }),
+    'Mail [the team](https://example.com/team) or [email us](mailto:a.b+c@example.co.uk) today.',
+  );
+  assert.equal(
+    removeLink(source, links[1]),
+    'Mail [the team](https://example.com/team) or a.b+c@example.co.uk today.',
+  );
+});
+
+test('every link the renderer produces is one this module can find, in order', () => {
+  const render = createRenderer({ sanitize: (html) => html });
+  const corpus = [
+    'A bare https://example.com in a sentence.',
+    'foohttps://example.com/x',
+    'www.example.com without a scheme',
+    'ftp://example.com/file here',
+    'Mail a@example.com or see https://example.com/contact',
+    'a.b+c@example.co.uk',
+    '- item with https://example.com/list and more',
+    '- [ ] a task with https://example.com/task',
+    '**bold https://example.com/bold** end',
+    'Text (see https://example.com/parens) here',
+    String.raw`"https://example.com/quoted" and 'https://example.com/single'`,
+    'https://example.com/trailing, then words',
+    'Punctuation https://example.com/dot. End',
+    'Semicolon https://example.com/semi; next',
+    'A https://example.com/x**bold** b',
+    'A https://example.com/x_ b',
+    'A https://example.com/x~ b',
+    'A https://example.com/x?a=1&b=2 b',
+    '## Heading with https://example.com/h',
+    '> quote with https://example.com/q',
+    '| a | b |\n| - | - |\n| https://example.com/cell | x |',
+    '<https://auto.example>',
+    'A [link](https://a.example) and https://b.example together.',
+    'A [link](https://a.example) and <https://b.example> and c@d.example',
+    'A [titled](https://a.example "Title") and [nested [brackets]](https://b.example)',
+    'Trailing slash https://example.com/',
+    'Port https://example.com:8443/x here',
+    'Percent https://example.com/a%20b here',
+    'Text `https://code.example` in backticks',
+    'A ![](https://example.com/i.png) image',
+  ];
+
+  for (const source of corpus) {
+    const rendered = [...render(source).matchAll(/<a [^>]*href="([^"]*)"/g)].map((match) => match[1]);
+    const found = findLinks(source).map((link) => link.href);
+    assert.deepEqual(found, rendered, source);
+  }
 });
 
 test('isUrl accepts one URL and nothing else', () => {
