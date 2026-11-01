@@ -5,8 +5,9 @@ set -euo pipefail
 # App Console need. icons/icon.svg is the single source of the artwork: change
 # it, run this, and commit both the SVG and the PNGs in one commit.
 #
-# Requires ImageMagick (`magick`). The SVG deliberately uses flat colours only —
-# ImageMagick's built-in renderer ignores gradients.
+# Requires ImageMagick (`magick`). The SVG deliberately uses flat colours and no
+# transforms — ImageMagick's built-in renderer ignores gradients and rotate(),
+# and silently draws a rotated group in the wrong place (or not at all).
 
 cd "$(dirname "$0")/.."
 SVG="icons/icon.svg"
