@@ -20,7 +20,7 @@ export class DropboxProvider {
     this.label = 'Dropbox';
     this.disconnectLabel = 'Disconnect from Dropbox';
     this.disconnectBody =
-      'Forgets the tokens stored on this device and revokes them with Dropbox, ' +
+      'Forgets the tokens stored on this device and asks Dropbox to revoke them, ' +
       'so you will need to authorise again next time. Your files are not touched.';
   }
 
@@ -175,17 +175,29 @@ export class DropboxProvider {
     return { path: result.metadata.path_lower };
   }
 
-  /** Revoke first, so the grant really ends, then forget it locally. */
+  /**
+   * Ask Dropbox to revoke this grant, then forget it locally.
+   *
+   * The refresh token is the one that lasts, so it is offered first: revoking a
+   * short-lived access token alone would leave the long-lived credential alive
+   * at Dropbox while the interface said otherwise. If Dropbox rejects that
+   * form, the access token is tried as a fallback.
+   */
   async disconnect() {
-    try {
-      const token = await this.token();
-      await fetch(RPC_HOST + 'auth/token/revoke', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {
-      // Token already invalid or offline: local sign-out still applies.
+    const attempts = [store.refresh, store.access?.token].filter(Boolean);
+
+    for (const token of attempts) {
+      try {
+        const res = await fetch(RPC_HOST + 'auth/token/revoke', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) break;
+      } catch {
+        // Offline or already invalid: local sign-out still applies.
+      }
     }
+
     signOut();
   }
 }

@@ -203,8 +203,10 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     and surface the `conflict` error instead of overwriting whatever changed
     underneath.
   - The token lives in `localStorage` because there is no backend. "Disconnect"
-    revokes it at Dropbox and forgets it locally. Never log a token, and never
-    put one in a URL.
+    offers the **refresh token** to `auth/token/revoke` first, then the access
+    token, and forgets both locally: revoking only the short-lived token would
+    leave the long-lived one alive at Dropbox. Never log a token, and never put
+    one in a URL.
   - **That storage is shared.** `ptaylor.github.io` is one origin for every
     project site on the account, so any other page there can read
     `taisce.refresh` — verified, not theoretical. A custom domain is the only

@@ -39,7 +39,7 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   across every folder, showing where each match lives.
 - **Connect once.** The app only ever sees its own folder in your Dropbox
   account (`Apps/Taisce`), never the rest of it.
-- **Disconnect** revokes the token with Dropbox and forgets it on the device. Your
+- **Disconnect** asks Dropbox to revoke the app’s access and forgets it on the device. Your
   files are never touched.
 
 ## Status
