@@ -17,6 +17,7 @@ const SHELL = [
   './js/paths.js',
   './js/recents.js',
   './js/save.js',
+  './js/templates.js',
   './js/ui.js',
   './vendor/marked.esm.js',
   './vendor/purify.es.mjs',

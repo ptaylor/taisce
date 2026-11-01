@@ -66,6 +66,7 @@ served.
 | `js/recents.js` | Recent ordering, filename search, the recent-count preference. Pure. |
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
 | `js/images.js` | Asset naming, the `assets/` location, image-link resolution. Pure. |
+| `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
