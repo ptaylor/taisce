@@ -458,8 +458,40 @@ main {
 }
 
 .block.editing {
+  position: relative;
   background: var(--accent-soft);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Finish editing without having to find somewhere neutral to tap. */
+.done-btn {
+  position: absolute;
+  top: -0.65rem;
+  right: -0.35rem;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--ok);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.done-btn:hover {
+  border-color: var(--ok);
+}
+
+.done-btn:active {
+  transform: scale(0.95);
+}
+
+.done-btn svg {
+  display: block;
 }
 
 .block.empty {
