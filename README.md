@@ -23,6 +23,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   it has the caret.
 - **There is no Save button.** Edits save by themselves about a second after you
   stop typing, and when the app is put away. There is no Cancel button either.
+- **Share a note** with the button in its corner: it creates a read-only Dropbox
+  link, copies it, or hands it to your phone's share sheet. The link is public,
+  so anyone who has it can read that file.
 - **Tap a task item** in the rendered file to check or uncheck it. The file is
   updated and saved exactly like any other edit.
 - **Tap a link** to change the words, change the address, copy it, open it in a
@@ -52,7 +55,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 **All four phases are working** — sign-in, folders with nesting and breadcrumb
 navigation, rendered Markdown, in-place editing with autosave, interactive task
 lists, new files and folders, recent files, filename search, undo/redo, pasted
-images, the slash menu for templates, the link editor, the guide at
+images, the slash menu for templates, the link editor, sharing a file as a
+Dropbox link, the guide at
 [`docs/`](./docs/index.html), icons and the publish script.
 Not yet done, and deliberately so: offline writing (a save while offline errors
 and keeps your text) and any sharing beyond your Dropbox account.

@@ -171,6 +171,14 @@ export function createMockProvider() {
       return { path: at };
     },
 
+    // The demo has no Dropbox to ask, so the link is a plausible stand-in that
+    // behaves like one: stable for a file, and viewable rather than downloading.
+    async shareLink(path) {
+      await wait();
+      const name = path.split('/').pop();
+      return `https://www.dropbox.com/scl/fi/taisce-demo/${name}?rlkey=demo&dl=0`;
+    },
+
     async disconnect() {
       localStorage.removeItem(KEY);
     },

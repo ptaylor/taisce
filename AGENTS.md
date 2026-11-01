@@ -191,10 +191,20 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     refresh token, and refresh on `401` rather than prompting the user again.
   - Ask for the least scope that works, because Dropbox reviews exactly this at
     production approval. The app needs `files.metadata.read` (listing),
-    `files.content.read` (open) and `files.content.write` (save, create,
-    upload). It does **not** use `account_info.read` — no code path calls
+    `files.content.read` (open), `files.content.write` (save, create, upload)
+    and `sharing.read` / `sharing.write` (the Share button: reuse or create a
+    shared link). It does **not** use `account_info.read` — no code path calls
     `users/get_current_account`; if the App Console still lists it, remove it.
-    Adding a scope re-prompts every existing user for consent.
+    Adding a scope re-prompts every existing user for consent, and a token that
+    predates a scope fails with `missing_scope`: `ScopeError` exists for exactly
+    that, and must never be treated as a sign-out, because the token is fine.
+  - **A shared link is public.** `sharing/create_shared_link_with_settings` on a
+    file inside the app folder is allowed (`allow_app_folder_app` is set on the
+    route; the "not supported" rule is about shared *folders*). The recipient
+    needs no Dropbox account and no Taisce install, and Dropbox previews `.md`
+    as plain text, so they see the Markdown source. Share links, never files:
+    Chromium's share sheet whitelist excludes `.md` and `text/markdown`, and it
+    fails *after* `canShare()` has already said yes.
   - Paths: `""` is the root; paths have no leading slash. Use `path_lower` for
     comparisons and `path_display` only for display — Dropbox paths are not
     case-sensitive.
