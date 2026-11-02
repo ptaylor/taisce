@@ -183,6 +183,16 @@ export class DropboxProvider {
   }
 
   /**
+   * Deletes to the Dropbox trash, not into nothing: `files/delete_v2` needs
+   * only `files.content.write`, which the app already asks for, and the file
+   * stays restorable at dropbox.com until the trash expires.
+   */
+  async remove(path) {
+    await this.rpc('files/delete_v2', { path });
+    return { path };
+  }
+
+  /**
    * The shared link for one file: the one that already exists, or a new public
    * one. Dropbox keeps links per file, so asking twice yields the same URL —
    * which is what makes it safe to cache and hand to a share sheet.

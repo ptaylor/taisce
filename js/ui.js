@@ -25,6 +25,7 @@ export function setStatus(kind, detail) {
       ready: detail || '',
       editing: 'Unsaved changes',
       saving: 'Saving…',
+      deleting: 'Deleting…',
       saved: when ? `Saved ${when}` : 'Saved',
       error: detail ? `⚠ ${detail}` : '⚠ Error',
     }[kind] ?? '';
@@ -49,12 +50,17 @@ export function setTitle(text) {
   if (el) el.textContent = text;
 }
 
-export function ask({ title, body, ok }) {
+/**
+ * A confirmation. `danger` marks the accept button as destructive, so the
+ * primary-coloured button is never the one that deletes something.
+ */
+export function ask({ title, body, ok, danger = false }) {
   return new Promise((resolve) => {
     const dialog = $('#confirm');
     $('#confirm-title').textContent = title;
     $('#confirm-body').textContent = body;
     $('#confirm-ok').textContent = ok;
+    $('#confirm-ok').classList.toggle('danger', danger);
 
     const finish = (value) => {
       $('#confirm-ok').onclick = null;

@@ -22,7 +22,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.20">
+<meta name="app-version" content="v0.21">
 </head>
 <body>
 
@@ -110,6 +110,16 @@
   <section id="screen-file" hidden>
     <article id="blocks" class="doc"></article>
     <div class="doc-tools">
+      <button id="delete" class="tool-btn danger" type="button" aria-label="Delete this file">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" d="M4.6 6.6h14.8M9.6 6.6V4.9a1.3 1.3 0 0 1 1.3-1.3h2.2a1.3 1.3 0 0 1 1.3 1.3v1.7"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" d="M6.6 6.6l.9 12a1.8 1.8 0 0 0 1.8 1.7h5.4a1.8 1.8 0 0 0 1.8-1.7l.9-12"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                d="M10.3 10.4v6.2M13.7 10.4v6.2"/>
+        </svg>
+      </button>
       <button id="share" class="tool-btn" type="button" aria-label="Share this file">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
           <circle cx="17.8" cy="5.4" r="2.9" fill="none" stroke="currentColor" stroke-width="1.8"/>
@@ -255,6 +265,10 @@
     <li>Tap the <strong>Recent</strong> heading to fold that list away. It is open
       to begin with.</li>
     <li>Only Markdown files are listed. Other files in the folder are left alone.</li>
+    <li><strong>Delete</strong> (bottom right of a note, the trash can) asks
+      first, naming the file, and then moves it to the Dropbox trash — where it
+      can be restored at dropbox.com until the trash expires. Pictures in the
+      note's <code>assets</code> folder are left alone.</li>
     <li><strong>Share</strong> (bottom right of a note) creates a
       read-only Dropbox link and offers to copy it or hand it to the phone's
       share sheet. Anyone with the link can read the note; revoke it in Dropbox

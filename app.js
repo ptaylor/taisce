@@ -493,6 +493,50 @@ async function openShare() {
   }
 }
 
+// Deleting is the one action in the app that loses something, so it is
+// explicit, it names the file, it says where the file goes, and the accept
+// button is the destructive one rather than the primary one.
+async function deleteFile() {
+  const file = state.file;
+  if (!file) return;
+
+  const ok = await ask({
+    title: `Delete “${file.name}”?`,
+    body:
+      `It moves to the Dropbox trash, where you can restore it at dropbox.com ` +
+      `until the trash expires. Pictures in the assets folder beside it are left alone. ` +
+      `Taisce cannot undo this.`,
+    ok: 'Delete',
+    danger: true,
+  });
+  if (!ok) return;
+
+  // Upload anything pending first, so a refused delete leaves the note saved
+  // and a queued save cannot land on a path that no longer exists.
+  await engine.flush();
+  engine.close();
+  setStatus('deleting');
+
+  try {
+    await provider.remove(file.path);
+  } catch (error) {
+    if (error instanceof AuthError) return showAuth();
+    trackEvent('error-delete');
+    toast(error.message || 'could not delete the file');
+    await openFile(file); // the note is still there: put it back on screen
+    return;
+  }
+
+  trackEvent('file-delete');
+  sharedLinks.delete(file.path);
+  state.index = null; // the recent list and search both lose a row
+  const dir = state.dir;
+  state.file = null;
+  editor.setText('');
+  await loadList(dir);
+  toast(`Deleted “${file.name}”`);
+}
+
 async function disconnect() {
   const ok = await ask({ title: `${provider.disconnectLabel}?`, body: provider.disconnectBody, ok: provider.disconnectLabel });
   if (!ok) return;
@@ -593,10 +637,15 @@ async function boot() {
   $('#account-title').textContent = MOCK ? 'Demo data' : 'Dropbox';
   $('#account-note').textContent = provider.disconnectBody;
 
+  // Presentation only. A cached shell from an older build can be missing an
+  // element a newer app.js expects, and losing the version is not worth
+  // stopping boot for.
   const version = document.querySelector('meta[name="app-version"]')?.content;
   if (version) {
-    $('#help-version').textContent = version;
-    $('#settings-version').textContent = version;
+    for (const id of ['help-version', 'settings-version']) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = version;
+    }
   }
 
   $('#connect').addEventListener('click', () => {
@@ -629,6 +678,9 @@ async function boot() {
   $('#share').addEventListener('click', () => {
     trackEvent('share-open');
     void openShare();
+  });
+  $('#delete').addEventListener('click', () => {
+    void deleteFile();
   });
   $('#share-close').addEventListener('click', () => $('#share-sheet').close());
   $('#share-copy').addEventListener('click', async () => {
