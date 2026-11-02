@@ -53,3 +53,40 @@ export function resolveImagePath(filePath, src) {
   if (withoutQuery.startsWith('/')) return normaliseDir(withoutQuery) || null;
   return joinPath(parentDir(filePath), withoutQuery);
 }
+
+// How a picture is written in a note: Markdown, or the raw HTML the renderer
+// also hydrates. Both end up as <img> elements, so both count as attached.
+const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)/g;
+const HTML_IMAGE = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+
+/**
+ * The pictures a note carries, as Dropbox paths.
+ *
+ * "Attached" means written in this note as a relative reference, which is the
+ * only kind the app itself creates — a pasted picture lands in `assets/` with a
+ * timestamped name and is linked relatively. Remote images are not attached
+ * (they are not in Dropbox), and neither is anything outside the note's folder.
+ *
+ * Deletion assumes a picture belongs to one note. A name collision would break
+ * that, so pasted names carry a timestamp and a random suffix.
+ *
+ * @param {string} filePath the note's own path
+ * @param {string} text the note's Markdown
+ * @returns {string[]} unique Dropbox paths, excluding the note itself
+ */
+export function attachedImages(filePath, text) {
+  const found = new Set();
+  const source = String(text || '');
+
+  const consider = (raw) => {
+    const path = resolveImagePath(filePath, raw);
+    if (!path) return;
+    if (path.toLowerCase() === String(filePath || '').toLowerCase()) return;
+    found.add(path);
+  };
+
+  for (const match of source.matchAll(MARKDOWN_IMAGE)) consider(match[1]);
+  for (const match of source.matchAll(HTML_IMAGE)) consider(match[1] || match[2] || match[3]);
+
+  return [...found];
+}

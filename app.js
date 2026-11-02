@@ -8,7 +8,13 @@ import { AuthError, ConflictError, ScopeError } from './js/errors.js';
 import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
 import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
 import { undoLimit } from './js/history.js';
-import { assetDirFor, imageFileName, markdownImage, resolveImagePath } from './js/images.js';
+import {
+  assetDirFor,
+  attachedImages,
+  imageFileName,
+  markdownImage,
+  resolveImagePath,
+} from './js/images.js';
 import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
 import { canShare, sharePayload, viewableLink } from './js/share.js';
 import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js';
@@ -500,12 +506,19 @@ async function deleteFile() {
   const file = state.file;
   if (!file) return;
 
+  // The pictures this note links to go with it. The count is worth naming in the
+  // question — "and its 3 pictures" is information, "its files" is not.
+  const pictures = attachedImages(file.path, editor.text());
+  const extra =
+    pictures.length === 0
+      ? 'Pictures in the assets folder beside it are left alone.'
+      : `The ${pictures.length} picture${pictures.length === 1 ? '' : 's'} it links to go with it.`;
+
   const ok = await ask({
     title: `Delete “${file.name}”?`,
     body:
       `It moves to the Dropbox trash, where you can restore it at dropbox.com ` +
-      `until the trash expires. Pictures in the assets folder beside it are left alone. ` +
-      `Taisce cannot undo this.`,
+      `until the trash expires. ${extra} Taisce cannot undo this.`,
     ok: 'Delete',
     danger: true,
   });
@@ -528,13 +541,37 @@ async function deleteFile() {
   }
 
   trackEvent('file-delete');
+  const failedPictures = await deletePictures(pictures);
+
   sharedLinks.delete(file.path);
   state.index = null; // the recent list and search both lose a row
   const dir = state.dir;
   state.file = null;
   editor.setText('');
   await loadList(dir);
-  toast(`Deleted “${file.name}”`);
+  toast(
+    failedPictures
+      ? `Deleted “${file.name}” — ${failedPictures} picture${failedPictures === 1 ? '' : 's'} could not be`
+      : `Deleted “${file.name}”`,
+  );
+}
+
+// The note is already gone, so a picture that will not delete is reported rather
+// than retried: an orphaned picture is the lesser fault, and the toast says so.
+async function deletePictures(paths) {
+  let failed = 0;
+  for (const path of paths) {
+    try {
+      await provider.remove(path);
+      const url = imageUrls.get(path);
+      if (url) URL.revokeObjectURL(url);
+      imageUrls.delete(path);
+    } catch {
+      failed += 1;
+    }
+  }
+  if (failed) trackEvent('error-delete');
+  return failed;
 }
 
 async function disconnect() {
