@@ -666,13 +666,18 @@ async function boot() {
     showHelp();
   });
   $('#help-close').addEventListener('click', () => $('#help').close());
+  $('#help-x').addEventListener('click', () => $('#help').close());
   $('#undo').addEventListener('click', () => editor.undo());
   $('#redo').addEventListener('click', () => editor.redo());
   $('#settings-button').addEventListener('click', () => {
     trackEvent('settings-open');
     openSettings();
   });
+  // Closing without submitting is the whole point of the corner control: the
+  // fields are re-read from state every time the sheet opens, so nothing typed
+  // survives a close.
   $('#settings-close').addEventListener('click', () => $('#settings').close());
+  $('#settings-x').addEventListener('click', () => $('#settings').close());
   $('#settings-form').addEventListener('submit', saveSettings);
 
   $('#search').addEventListener('input', (event) => {
