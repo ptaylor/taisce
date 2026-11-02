@@ -34,13 +34,15 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
   files       new-open file-new folder-new file-open file-delete
               open-from-recent open-from-search
   search      search search-empty
-  editor      template-insert task-toggle image-paste undo redo
+  editor      template-insert task-toggle image-paste image-open image-delete
+              undo redo
   links       link-open link-change link-remove link-copy link-go link-paste
   share       share-open share-copy share-send
   settings    settings-open settings-save help-open recent-toggle installed
   sync        conflict-merged conflict-dropped
   failures    error-open error-save error-search error-share error-image
-              error-delete share-scope   (the grant predates sharing.read)
+              error-delete error-image-delete
+              share-scope         (the grant predates sharing.read)
 
 Anything not listed falls into an "other" bucket so a new event is never lost
 before this file knows about it.
@@ -326,7 +328,10 @@ FILE_EVENTS = (
     "open-from-recent", "open-from-search",
 )
 SEARCH_EVENTS = ("search", "search-empty")
-EDITOR_EVENTS = ("template-insert", "task-toggle", "image-paste", "undo", "redo")
+EDITOR_EVENTS = (
+    "template-insert", "task-toggle", "image-paste", "image-open", "image-delete",
+    "undo", "redo",
+)
 LINK_EVENTS = (
     "link-open", "link-change", "link-remove", "link-copy", "link-go", "link-paste",
 )
@@ -337,7 +342,7 @@ SETTINGS_EVENTS = (
 SYNC_EVENTS = ("conflict-merged", "conflict-dropped")
 FAILURE_EVENTS = (
     "error-open", "error-save", "error-search", "error-share", "error-image",
-    "error-delete",
+    "error-delete", "error-image-delete",
 )
 
 KNOWN_EVENTS = (
@@ -563,6 +568,7 @@ def _chart_engagement(report, charts_dir):
         ("Templates inserted", e["template-insert"]),
         ("Tasks ticked", e["task-toggle"]),
         ("Images pasted", e["image-paste"]),
+        ("Images deleted", e["image-delete"]),
         ("Undo", e["undo"]),
         ("Redo", e["redo"]),
     ]
@@ -828,7 +834,11 @@ def generate_html(report, charts, out_dir):
         _table_section("Search", _kv(report["search"]), "Event", "Count",
                        note="Whether a search found anything is the only thing "
                             "measured — never what was typed."),
-        _table_section("Editor", _kv(report["editor"]), "Event", "Count"),
+        _table_section("Editor", _kv(report["editor"]), "Event", "Count",
+                       note="image-open is a tap on a picture, which offers "
+                            "View and Delete; image-delete is the confirmed "
+                            "delete, so a note losing pictures is counted here "
+                            "whether it was the note's own delete or one picture's."),
         _table_section("Links", _kv(report["links"]), "Event", "Count",
                        note="link-paste is the select-then-paste shortcut; "
                             "link-go is a link followed from its editor."),

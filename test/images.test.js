@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   assetDirFor,
   attachedImages,
+  findImageRefs,
+  removeImageRef,
   imageExtension,
   imageFileName,
   markdownImage,
@@ -87,4 +89,22 @@ test('raw HTML images count too, because the renderer hydrates them', () => {
 test('a note never counts itself, and plain text counts nothing', () => {
   assert.deepEqual(attachedImages('/a.md', 'no pictures at all'), []);
   assert.deepEqual(attachedImages('/a.md', '![](a.md)'), []);
+});
+
+test('a picture reference knows its own span, so the markup can be removed', () => {
+  const source = 'Before ![](assets/a.png) and <img src="assets/b.gif"> after.';
+  const refs = findImageRefs(source);
+  assert.deepEqual(refs.map((ref) => ref.src), ['assets/a.png', 'assets/b.gif']);
+  for (const ref of refs) {
+    assert.equal(source.slice(ref.start, ref.end).includes(ref.src), true);
+  }
+  assert.equal(removeImageRef(source, refs[0]), 'Before  and <img src="assets/b.gif"> after.');
+  assert.equal(removeImageRef(source, refs[1]), 'Before ![](assets/a.png) and  after.');
+});
+
+test('a titled picture reference is removed whole', () => {
+  const source = 'Text ![](assets/a.png "A caption") more';
+  const [ref] = findImageRefs(source);
+  assert.equal(ref.src, 'assets/a.png');
+  assert.equal(removeImageRef(source, ref), 'Text  more');
 });

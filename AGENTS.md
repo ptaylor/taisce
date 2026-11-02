@@ -427,7 +427,11 @@ Rules:
 - **Images are uploaded before they are linked.** A link to a picture that
   failed to upload is worse than no link. Relative image sources are parked on a
   blank pixel until the authenticated fetch resolves, or the browser logs a 404
-  for a path the web server does not have.
+  for a path the web server does not have. A picture is tapped, not edited:
+  tapping one opens View/Delete, so `hydrateImages` must keep the original
+  relative reference on the element (`data-src`) — it is what the delete removes
+  from the note once the file is gone, and the blob URL in `src` cannot be
+  turned back into a path.
 - **Dropbox is an adjective, not a noun.** Write "your Dropbox account", "the
   Dropbox app folder", "compatible with Dropbox" — never "your Dropbox",
   "Dropbox's files", or the name pluralised or possessive. The

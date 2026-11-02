@@ -4,6 +4,7 @@ import { detectSlash, expandTemplate, matchTemplates } from './templates.js';
 import { editLink, findLinks, isUrl, linkMarkdown, removeLink } from './links.js';
 import { renderMarkdown } from './markdown.js';
 import { trackEvent } from './analytics.js';
+import { findImageRefs, removeImageRef } from './images.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
 
@@ -40,12 +41,15 @@ export function createEditor({
   onHistory = () => {},
   resolveImage,
   onPasteImage,
+  onViewImage,
+  onDeleteImage,
   undoLimit = 50,
 }) {
   let text = '';
   let editing = -1;
   let editBlock = null;
   let popover = null;
+  let imageMenu = null;
   const edits = new Map();
   const history = createHistory(undoLimit);
 
@@ -123,6 +127,7 @@ export function createEditor({
     const blocks = parseBlocks(text);
 
     dismissLink(false);
+    closeImageMenu();
     container.replaceChildren();
     editing = -1;
     editBlock = null;
@@ -405,7 +410,7 @@ export function createEditor({
     });
   }
 
-  function removeBlock(index) {
+  function removeBlock(index, { edit = true } = {}) {
     const block = parseBlocks(text)[index];
     if (!block) return;
 
@@ -420,6 +425,7 @@ export function createEditor({
     onStatus('editing');
     onChange(text);
     render();
+    if (!edit) return;
     const previous = container.querySelector(`.block[data-index="${Math.max(0, index - 1)}"]`);
     if (previous) beginEdit(previous);
   }
@@ -482,6 +488,126 @@ export function createEditor({
     text = applyBlockEdit(text, block, next);
     history.record({ start: block.start, before: current.source, after: next });
     edits.set(current.index, { source: next, type: block.type });
+    notifyHistory();
+    onStatus('editing');
+    onChange(text);
+    render();
+  }
+
+  // Anchored to a rectangle on screen, flipped above when there is no room
+  // below, and kept inside the viewport sideways.
+  function placeNear(element, rect) {
+    const box = element.getBoundingClientRect();
+    const gap = 8;
+    let top = rect.bottom + gap;
+    if (top + box.height > window.innerHeight - gap) {
+      top = Math.max(gap, rect.top - box.height - gap);
+    }
+    const left = Math.min(
+      Math.max(gap, rect.left),
+      Math.max(gap, window.innerWidth - box.width - gap),
+    );
+    element.style.top = `${top}px`;
+    element.style.left = `${left}px`;
+  }
+
+  // A picture is a thing to look at or remove, not a paragraph to edit. Tapping
+  // one offers both, and removing it takes the Dropbox file and the markup that
+  // points at it.
+  function openImageMenu(image) {
+    const ref = image.dataset.src;
+    const blockEl = image.closest('.block');
+    const index = Number(blockEl?.dataset.index);
+    const block = parseBlocks(text)[index];
+    if (!ref || !block) return false;
+
+    trackEvent('image-open');
+    dismissLink(false);
+    closeImageMenu();
+
+    const element = document.createElement('div');
+    element.className = 'link-pop image-pop';
+    element.setAttribute('role', 'dialog');
+    element.setAttribute('aria-label', 'Picture');
+
+    const caption = document.createElement('p');
+    caption.className = 'image-caption';
+    caption.textContent = image.getAttribute('alt') || ref.split('/').pop();
+
+    const actions = document.createElement('div');
+    actions.className = 'link-actions';
+
+    const action = (label, handler, className = 'link-action') => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener('click', handler);
+      actions.appendChild(button);
+    };
+
+    action('View', () => {
+      closeImageMenu();
+      onViewImage?.({
+        url: image.src,
+        alt: image.getAttribute('alt') || '',
+        name: ref.split('/').pop(),
+      });
+    });
+
+    action(
+      'Delete',
+      async () => {
+        closeImageMenu();
+        const removed = await onDeleteImage?.(ref);
+        if (removed) removePicture(index, ref);
+      },
+      'link-action danger',
+    );
+
+    element.append(caption, actions);
+    document.body.appendChild(element);
+    placeNear(element, image.getBoundingClientRect());
+
+    const onOutside = (event) => {
+      if (!element.contains(event.target)) closeImageMenu();
+    };
+    // Opening the menu is a pointerdown as well; listen from the next frame.
+    requestAnimationFrame(() => document.addEventListener('pointerdown', onOutside, true));
+    imageMenu = { element, onOutside };
+    return true;
+  }
+
+  function closeImageMenu() {
+    if (!imageMenu) return;
+    const current = imageMenu;
+    imageMenu = null;
+    current.element.remove();
+    document.removeEventListener('pointerdown', current.onOutside, true);
+  }
+
+  // The file is already gone from Dropbox by the time this runs; what is left is
+  // the pointer to it, which must go too or the note links to nothing.
+  function removePicture(index, ref) {
+    const block = parseBlocks(text)[index];
+    if (!block) return;
+
+    const target = findImageRefs(block.source).find((candidate) => candidate.src === ref);
+    if (!target) return;
+
+    const before = block.source;
+    const next = removeImageRef(before, target);
+    if (next.trim() === '') {
+      // The picture was the whole paragraph: drop the paragraph as well, or the
+      // note keeps an empty line where a picture used to be. No editing: this
+      // was not a request to write anything.
+      removeBlock(index, { edit: false });
+      return;
+    }
+
+    text = applyBlockEdit(text, block, next);
+    history.record({ start: block.start, before, after: next });
+    edits.set(index, { source: next, type: block.type });
     notifyHistory();
     onStatus('editing');
     onChange(text);
@@ -595,16 +721,7 @@ export function createEditor({
 
     document.body.appendChild(element);
 
-    const rect = anchor.getBoundingClientRect();
-    const box = element.getBoundingClientRect();
-    const gap = 8;
-    let top = rect.bottom + gap;
-    if (top + box.height > window.innerHeight - gap) {
-      top = Math.max(gap, rect.top - box.height - gap);
-    }
-    const left = Math.min(Math.max(gap, rect.left), Math.max(gap, window.innerWidth - box.width - gap));
-    element.style.top = `${top}px`;
-    element.style.left = `${left}px`;
+    placeNear(element, anchor.getBoundingClientRect());
 
     popover = {
       element,
@@ -691,6 +808,11 @@ export function createEditor({
         return;
       }
       return; // nothing in the source to edit: let the browser follow it
+    }
+    const picture = event.target.closest('img');
+    if (picture && !picture.closest('a') && openImageMenu(picture)) {
+      event.preventDefault();
+      return;
     }
     if (event.target.closest('textarea')) return;
     if (event.target.closest('.done-btn')) return; // the blur already committed

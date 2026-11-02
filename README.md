@@ -43,7 +43,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   setting. Undo survives the autosave, because it writes like any other edit.
 - **Paste a picture** into a note: it is uploaded to an `assets` folder beside
   the note and linked in relatively, so the note still renders in any other
-  Markdown editor.
+  Markdown editor. **Tap a picture** to view it full size or delete it — deleting
+  removes the file and the reference to it, after asking.
 - **Finding things.** The home screen lists the files you changed most
   recently (Settings controls how many; tap **Recent** to fold the list away),
   and the search box matches file names across every folder, showing where each
