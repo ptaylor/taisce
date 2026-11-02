@@ -402,8 +402,11 @@ Rules:
   behind, the accepting button is red rather than the primary colour, and Cancel
   keeps the initial focus so a stray Enter cancels. Nothing in the app may
   delete, overwrite or revoke on a single tap. Deleting a note moves it to the
-  Dropbox trash — recoverable — and never touches its `assets/` pictures, which
-  another note may share.
+  Dropbox trash — recoverable — and takes the pictures that note links to with
+  it, and only those: `assets/` is shared by every note in a folder, so the
+  attribution is per note (`attachedImages` in `js/images.js`), never the folder.
+  A picture belongs to one note because a pasted one is named with a timestamp
+  and a random suffix; delete by that attribution rather than by guessing.
 - **A link is edited where it sits.** Clicking a rendered link opens an editor
   for that one link — text, address, copy, open, remove — rather than following
   it; `js/links.js` finds the link's exact span in the block source and splices

@@ -180,12 +180,14 @@ export function createMockProvider() {
     },
 
     // No trash in the demo: the file is gone, and Reset demo data brings the
-    // whole sample back.
+    // whole sample back. An upload and a note share this one call, so it clears
+    // whichever kind of entry the path names.
     async remove(path) {
       await wait();
       const data = read();
-      if (!data.files[path]) throw new Error('path/not_found');
-      delete data.files[path];
+      if (data.files[path]) delete data.files[path];
+      else if (data.images[path]) delete data.images[path];
+      else throw new Error('path/not_found');
       write(data);
       return { path };
     },

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   assetDirFor,
+  attachedImages,
   imageExtension,
   imageFileName,
   markdownImage,
@@ -59,4 +60,31 @@ test('a reference cannot walk out of the note\'s folder', () => {
   assert.equal(resolveImagePath('/notes/ideas.md', '/notes/assets/../secret.png'), null);
   // Leading ./ is normal, not traversal.
   assert.equal(resolveImagePath('/notes/ideas.md', './assets/a.png'), '/notes/assets/a.png');
+});
+
+test('a note carries the pictures it links to, and only those', () => {
+  const note = '/notes/todo.md';
+  const text = [
+    '# Shop',
+    '![](assets/2026-11-02-120000-ab12.png)',
+    'Some text, then ![](assets/2026-11-02-120100-cd34.jpg).',
+    'The same picture again: ![](assets/2026-11-02-120000-ab12.png)',
+    'A remote one is not in Dropbox: ![remote](https://example.com/x.png)',
+    'And this one escapes: ![](../elsewhere/y.png)',
+  ].join('\n');
+
+  assert.deepEqual(attachedImages(note, text), [
+    '/notes/assets/2026-11-02-120000-ab12.png',
+    '/notes/assets/2026-11-02-120100-cd34.jpg',
+  ]);
+});
+
+test('raw HTML images count too, because the renderer hydrates them', () => {
+  assert.deepEqual(attachedImages('/a.md', '<img src="assets/p.png" alt="p">'), ['/assets/p.png']);
+  assert.deepEqual(attachedImages("/a.md", "<img src='assets/q.gif'>"), ['/assets/q.gif']);
+});
+
+test('a note never counts itself, and plain text counts nothing', () => {
+  assert.deepEqual(attachedImages('/a.md', 'no pictures at all'), []);
+  assert.deepEqual(attachedImages('/a.md', '![](a.md)'), []);
 });

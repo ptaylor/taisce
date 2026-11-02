@@ -24,8 +24,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **There is no Save button.** Edits save by themselves about a second after you
   stop typing, and when the app is put away. There is no Cancel button either.
 - **Delete a note** with the trash can in its corner. It asks first — naming the
-  file and saying what happens — then moves it to the Dropbox trash, where you
-  can restore it at dropbox.com. Pictures in its `assets` folder are left alone.
+  file, and how many pictures it carries — then moves both the note and the
+  pictures it links to into the Dropbox trash, where you can restore them at
+  dropbox.com. Pictures belonging to other notes are left alone.
 - **Share a note** with the button in its corner: it creates a read-only Dropbox
   link, copies it, or hands it to your phone's share sheet. The link is public,
   so anyone who has it can read that file.
