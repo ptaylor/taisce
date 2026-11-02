@@ -929,6 +929,34 @@ main {
   color: var(--dim);
 }
 
+/* A sheet identifies the app and then says which sheet it is: the heading is
+   the sheet, the byline under it is the name and the release. */
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.sheet-logo {
+  flex: none;
+  border-radius: 8px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+}
+
+.sheet-app {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.sheet-app .wordmark {
+  font-size: 0.95rem;
+}
+
 /* The help sheet opens with the app itself: mark, name, version. */
 .about {
   display: flex;
