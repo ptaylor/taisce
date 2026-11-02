@@ -149,9 +149,16 @@
   </form>
 </dialog>
 
-<dialog id="settings" class="sheet">
+<dialog id="settings" class="sheet" aria-labelledby="settings-title">
   <form id="settings-form" novalidate>
-    <h2>Settings</h2>
+    <div class="sheet-head">
+      <img class="sheet-logo" src="./icons/icon-64.png" alt="" width="32" height="32" aria-hidden="true">
+      <div>
+        <h2 id="settings-title">Settings</h2>
+        <p class="sheet-app"><span class="wordmark">Taisce</span>
+          <span id="settings-version" class="about-version"></span></p>
+      </div>
+    </div>
     <label class="field">
       <span>Recent files shown on the home screen</span>
       <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">

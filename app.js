@@ -594,7 +594,10 @@ async function boot() {
   $('#account-note').textContent = provider.disconnectBody;
 
   const version = document.querySelector('meta[name="app-version"]')?.content;
-  if (version) $('#help-version').textContent = version;
+  if (version) {
+    $('#help-version').textContent = version;
+    $('#settings-version').textContent = version;
+  }
 
   $('#connect').addEventListener('click', () => {
     trackEvent('connect-start');
