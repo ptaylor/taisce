@@ -882,6 +882,7 @@ main {
 /* --------------------------------------------------------------- dialogs */
 
 .sheet {
+  position: relative;
   width: min(30rem, calc(100vw - 2rem));
   padding: 1.4rem;
   border: 1px solid var(--line);
@@ -889,6 +890,39 @@ main {
   background: var(--panel);
   color: var(--fg);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
+/* Escape closes a dialog on a keyboard; this is the same thing for a thumb.
+   Last in the dialog, so Tab reaches it after the content rather than first. */
+.sheet-x {
+  /* Sticky, not absolute: the help sheet is taller than the screen and scrolls,
+     and a close control that scrolls away is the thing it was added to avoid.
+     Floated right so it sits in the corner without adding a row of height. */
+  position: sticky;
+  top: -1.4rem;
+  z-index: 2;
+  float: right;
+  margin: -1.4rem -1.4rem 0 0;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.sheet-x:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.sheet-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .sheet::backdrop {

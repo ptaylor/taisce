@@ -22,7 +22,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.19">
+<meta name="app-version" content="v0.20">
 </head>
 <body>
 
@@ -150,6 +150,12 @@
 </dialog>
 
 <dialog id="settings" class="sheet" aria-labelledby="settings-title">
+  <button class="sheet-x" type="button" aria-label="Close" id="settings-x">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
   <form id="settings-form" novalidate>
     <div class="sheet-head">
       <img class="sheet-logo" src="./icons/icon-64.png" alt="" width="32" height="32" aria-hidden="true">
@@ -205,6 +211,12 @@
 </dialog>
 
 <dialog id="help" class="sheet" tabindex="-1">
+  <button class="sheet-x" type="button" aria-label="Close" id="help-x">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
   <div class="about">
     <img class="about-logo" src="./icons/icon-192.png" alt="" width="56" height="56" aria-hidden="true">
     <div>
