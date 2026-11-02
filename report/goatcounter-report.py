@@ -31,7 +31,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
               /v<release>        the same visit, tagged with the release
 
   connect     connect-start      the Connect to Dropbox button was pressed
-  files       new-open file-new folder-new file-open
+  files       new-open file-new folder-new file-open file-delete
               open-from-recent open-from-search
   search      search search-empty
   editor      template-insert task-toggle image-paste undo redo
@@ -40,7 +40,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
   settings    settings-open settings-save help-open recent-toggle installed
   sync        conflict-merged conflict-dropped
   failures    error-open error-save error-search error-share error-image
-              share-scope         the grant predates the sharing permission
+              error-delete share-scope   (the grant predates sharing.read)
 
 Anything not listed falls into an "other" bucket so a new event is never lost
 before this file knows about it.
@@ -322,7 +322,7 @@ def parse_period(period):
 
 CONNECT_EVENTS = ("connect-start",)
 FILE_EVENTS = (
-    "new-open", "file-new", "folder-new", "file-open",
+    "new-open", "file-new", "folder-new", "file-open", "file-delete",
     "open-from-recent", "open-from-search",
 )
 SEARCH_EVENTS = ("search", "search-empty")
@@ -337,6 +337,7 @@ SETTINGS_EVENTS = (
 SYNC_EVENTS = ("conflict-merged", "conflict-dropped")
 FAILURE_EVENTS = (
     "error-open", "error-save", "error-search", "error-share", "error-image",
+    "error-delete",
 )
 
 KNOWN_EVENTS = (
@@ -432,6 +433,7 @@ def build_report(site, start, end, data):
         "notes_opened": notes_opened,
         "files_created": files["file-new"],
         "folders_created": files["folder-new"],
+        "files_deleted": files["file-delete"],
         "searches": search["search"],
         "searches_empty": search["search-empty"],
         "templates": editor["template-insert"],
@@ -491,7 +493,8 @@ def short_summary(report):
         f"Period {report['period']['start']} → {report['period']['end']}: "
         f"visitors={m['visitors']}, notes opened={m['notes_opened']} "
         f"({opened_per_visit}% of visitors), created={m['files_created']} files "
-        f"+ {m['folders_created']} folders, shares={m['shares_completed']}, "
+        f"+ {m['folders_created']} folders, deleted={m['files_deleted']}, "
+        f"shares={m['shares_completed']}, "
         f"installs={m['installs']}, errors={m['errors_total']}"
     )
 
@@ -759,6 +762,10 @@ def generate_html(report, charts, out_dir):
             f"{m['files_created']:,}", "Files created",
             hint=f"{m['folders_created']:,} folders too",
         ),
+        _metric_card(
+            f"{m['files_deleted']:,}", "Files deleted",
+            hint="moved to the Dropbox trash", tone="warn" if m["files_deleted"] else "",
+        ),
         _metric_card(f"{m['searches']:,}", "Searches",
                      hint=f"{m['searches_empty']:,} found nothing"),
         _metric_card(
@@ -814,8 +821,10 @@ def generate_html(report, charts, out_dir):
                        note="The Connect to Dropbox button. Authorisation is "
                             "counted here, not the visit."),
         _table_section("Files and folders", _kv(report["files"]), "Event", "Count",
-                       note="file-open counts every note opened, including "
-                            "those opened straight after creating one."),
+                       note="file-open counts every note opened, including those "
+                            "opened straight after creating one; file-delete is "
+                            "a confirmed delete, so a number here means someone "
+                            "read what the dialog said and agreed."),
         _table_section("Search", _kv(report["search"]), "Event", "Count",
                        note="Whether a search found anything is the only thing "
                             "measured — never what was typed."),

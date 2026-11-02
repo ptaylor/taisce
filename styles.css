@@ -859,6 +859,23 @@ main {
   gap: 0.4rem;
 }
 
+/* Kept away from the undo and redo taps: the four buttons share a row, and a
+   mis-tap on this one cannot be undone. */
+.tool-btn.danger {
+  margin-right: 0.55rem;
+  color: var(--dim);
+}
+
+.tool-btn.danger:hover {
+  border-color: var(--err);
+  color: var(--err);
+}
+
+.primary.danger {
+  background: var(--err);
+  color: #fff;
+}
+
 .tool-btn {
   width: 2.7rem;
   height: 2.7rem;

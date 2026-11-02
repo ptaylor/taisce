@@ -396,6 +396,14 @@ Rules:
     commit, in one line, so the next person knows it was a decision.
   Removing a feature retires its events by the same rule. The vocabulary is
   documented under **GoatCounter** below and must match the code exactly.
+- **A destructive action asks first, and the safe answer is the default.** Use
+  `ask({ title, body, ok, danger: true })` from `js/ui.js`: the title names the
+  thing (`Delete "shopping"?`), the body says where it goes and what is left
+  behind, the accepting button is red rather than the primary colour, and Cancel
+  keeps the initial focus so a stray Enter cancels. Nothing in the app may
+  delete, overwrite or revoke on a single tap. Deleting a note moves it to the
+  Dropbox trash — recoverable — and never touches its `assets/` pictures, which
+  another note may share.
 - **A link is edited where it sits.** Clicking a rendered link opens an editor
   for that one link — text, address, copy, open, remove — rather than following
   it; `js/links.js` finds the link's exact span in the block source and splices

@@ -179,6 +179,17 @@ export function createMockProvider() {
       return `https://www.dropbox.com/scl/fi/taisce-demo/${name}?rlkey=demo&dl=0`;
     },
 
+    // No trash in the demo: the file is gone, and Reset demo data brings the
+    // whole sample back.
+    async remove(path) {
+      await wait();
+      const data = read();
+      if (!data.files[path]) throw new Error('path/not_found');
+      delete data.files[path];
+      write(data);
+      return { path };
+    },
+
     async disconnect() {
       localStorage.removeItem(KEY);
     },
