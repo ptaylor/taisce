@@ -55,9 +55,45 @@ export function resolveImagePath(filePath, src) {
 }
 
 // How a picture is written in a note: Markdown, or the raw HTML the renderer
-// also hydrates. Both end up as <img> elements, so both count as attached.
-const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)/g;
-const HTML_IMAGE = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+// also hydrates. Both end up as <img> elements, so both are pictures a note
+// carries. The span is kept as well as the source, because deleting a picture
+// means deleting the markup that points at it.
+const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^)\s>]+)>?[^)]*\)/g;
+const HTML_IMAGE = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi;
+
+/**
+ * Every picture reference in a note, in source order.
+ * @param {string} source
+ * @returns {{form: 'markdown'|'html', start: number, end: number, src: string}[]}
+ */
+export function findImageRefs(source) {
+  const text = String(source || '');
+  const refs = [];
+
+  for (const match of text.matchAll(MARKDOWN_IMAGE)) {
+    refs.push({
+      form: 'markdown',
+      start: match.index,
+      end: match.index + match[0].length,
+      src: match[1],
+    });
+  }
+  for (const match of text.matchAll(HTML_IMAGE)) {
+    refs.push({
+      form: 'html',
+      start: match.index,
+      end: match.index + match[0].length,
+      src: match[1] || match[2] || match[3],
+    });
+  }
+
+  return refs.sort((a, b) => a.start - b.start);
+}
+
+/** The source with one picture's markup taken out. */
+export function removeImageRef(source, ref) {
+  return source.slice(0, ref.start) + source.slice(ref.end);
+}
 
 /**
  * The pictures a note carries, as Dropbox paths.
@@ -67,8 +103,9 @@ const HTML_IMAGE = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
  * timestamped name and is linked relatively. Remote images are not attached
  * (they are not in Dropbox), and neither is anything outside the note's folder.
  *
- * Deletion assumes a picture belongs to one note. A name collision would break
- * that, so pasted names carry a timestamp and a random suffix.
+ * Deleting a note takes these with it, and assumes a picture belongs to one
+ * note. A name collision would break that, so pasted names carry a timestamp
+ * and a random suffix.
  *
  * @param {string} filePath the note's own path
  * @param {string} text the note's Markdown
@@ -76,17 +113,13 @@ const HTML_IMAGE = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
  */
 export function attachedImages(filePath, text) {
   const found = new Set();
-  const source = String(text || '');
+  const own = String(filePath || '').toLowerCase();
 
-  const consider = (raw) => {
-    const path = resolveImagePath(filePath, raw);
-    if (!path) return;
-    if (path.toLowerCase() === String(filePath || '').toLowerCase()) return;
+  for (const ref of findImageRefs(text)) {
+    const path = resolveImagePath(filePath, ref.src);
+    if (!path || path.toLowerCase() === own) continue;
     found.add(path);
-  };
-
-  for (const match of source.matchAll(MARKDOWN_IMAGE)) consider(match[1]);
-  for (const match of source.matchAll(HTML_IMAGE)) consider(match[1] || match[2] || match[3]);
+  }
 
   return [...found];
 }

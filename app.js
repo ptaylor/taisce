@@ -50,7 +50,54 @@ const editor = createEditor({
   undoLimit: state.undoMax,
   resolveImage,
   onPasteImage: uploadPastedImage,
+  onViewImage: ({ url, alt, name }) => showViewer(url, alt || name),
+  onDeleteImage: (src) => deletePicture(src),
 });
+
+function showViewer(url, alt) {
+  const dialog = $('#viewer');
+  $('#viewer-img').src = url;
+  $('#viewer-img').alt = alt || '';
+  $('#viewer-name').textContent = alt || '';
+  $('#viewer-name').hidden = !alt;
+  dialog.showModal();
+}
+
+// Deleting a picture is a file delete, so it asks the same way a note delete
+// does — and the markup pointing at it is removed by the editor afterwards.
+async function deletePicture(src) {
+  if (!state.file) return false;
+  const path = resolveImagePath(state.file.path, src);
+  const name = path ? path.split('/').pop() : src.split('/').pop();
+
+  const ok = await ask({
+    title: `Delete “${name}”?`,
+    body:
+      'The picture moves to the Dropbox trash, and the reference to it is ' +
+      'removed from this note. Taisce cannot undo this.',
+    ok: 'Delete',
+    danger: true,
+  });
+  if (!ok) return false;
+
+  try {
+    await provider.remove(path);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      showAuth();
+      return false;
+    }
+    trackEvent('error-image-delete');
+    toast(error.message || 'could not delete the picture');
+    return false;
+  }
+
+  trackEvent('image-delete');
+  const cached = imageUrls.get(path);
+  if (cached) URL.revokeObjectURL(cached);
+  imageUrls.delete(path);
+  return true;
+}
 
 const engine = createSaveEngine({
   provider,
@@ -719,6 +766,7 @@ async function boot() {
   $('#delete').addEventListener('click', () => {
     void deleteFile();
   });
+  $('#viewer-x').addEventListener('click', () => $('#viewer').close());
   $('#share-close').addEventListener('click', () => $('#share-sheet').close());
   $('#share-copy').addEventListener('click', async () => {
     const url = $('#share-url').value;

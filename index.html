@@ -22,7 +22,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.22">
+<meta name="app-version" content="v0.23">
 </head>
 <body>
 
@@ -209,6 +209,17 @@
   </menu>
 </dialog>
 
+<dialog id="viewer" class="sheet viewer" aria-labelledby="viewer-name">
+  <button class="sheet-x" type="button" aria-label="Close" id="viewer-x">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false">
+      <path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+            d="M6 6l12 12M18 6L6 18"/>
+    </svg>
+  </button>
+  <img id="viewer-img" alt="">
+  <p id="viewer-name" class="where"></p>
+</dialog>
+
 <dialog id="confirm" class="sheet">
   <form method="dialog">
     <h2 id="confirm-title">Are you sure?</h2>
@@ -256,6 +267,9 @@
       (⌘Z / Ctrl+Z on a keyboard, shift for redo). One step per block edit.</li>
     <li><strong>Paste a picture</strong> into a note: it uploads to the
       <code>assets</code> folder beside the note and links itself in.</li>
+    <li><strong>Tap a picture</strong> to see it full size (<em>View</em>) or
+      delete it. Deleting a picture asks first, then removes both the file and
+      the reference to it in the note; nothing else in the note changes.</li>
   </ul>
   <h3>Files and folders</h3>
   <ul>
