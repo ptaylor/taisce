@@ -5,6 +5,7 @@ import { editLink, findLinks, isUrl, linkMarkdown, removeLink } from './links.js
 import { renderMarkdown } from './markdown.js';
 import { trackEvent } from './analytics.js';
 import { findImageRefs, removeImageRef } from './images.js';
+import { quotePaste } from './paste.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
 
@@ -338,6 +339,20 @@ export function createEditor({
       if (!data || data.files.length > 0) return; // pictures are the app's job
       const pasted = data.getData('text/plain');
       const { selectionStart: from, selectionEnd: to } = textarea;
+
+      // A line break ends a blockquote unless every line carries the marker,
+      // so a multi-line paste into one keeps the quote on each line. A code
+      // block is exempt: a line of source may well begin with `>`.
+      if (block.type !== 'code') {
+        const quoted = quotePaste(textarea.value, from, pasted);
+        if (quoted) {
+          event.preventDefault();
+          textarea.setRangeText(quoted, from, to, 'end');
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+      }
+
       if (from === to || !isUrl(pasted)) return;
       event.preventDefault();
       textarea.setRangeText(linkMarkdown(textarea.value.slice(from, to), pasted), from, to, 'end');

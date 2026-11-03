@@ -74,6 +74,7 @@ served.
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
 | `js/analytics.js` | The only caller of GoatCounter: guarded `trackView`/`trackEvent`, and the demo switch. |
 | `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
+| `js/paste.js` | Blockquote-aware paste: gives every pasted line the quote marker it is pasted into. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |

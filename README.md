@@ -20,7 +20,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   the start of a line makes a heading, `**bold**`, `` `code` ``, `- ` a list.
   There is no toolbar, because the syntax already is one.
 - **Leave the block and it renders again.** A block shows its source only while
-  it has the caret.
+  it has the caret. Pasting several lines into a `> quote` keeps every pasted
+  line quoted instead of ending the quote after the first one.
 - **There is no Save button.** Edits save by themselves about a second after you
   stop typing, and when the app is put away. There is no Cancel button either.
 - **Delete a note** with the trash can in its corner. It asks first — naming the
