@@ -437,8 +437,8 @@ Rules:
   with `showBusy(label)` until the answer arrives: a new note's name above the
   last note's text is a lie for as long as the read takes, and a stale note is
   worse than a blank one. `#busy` is solid rather than translucent for the same
-  reason, and its pencil writes the line it is waiting for (motion dropped under
-  `prefers-reduced-motion`, which keeps the picture and the words). Inline
+  reason, and its pencil writes the wavy line it is waiting for (motion dropped
+  under `prefers-reduced-motion`, which keeps the picture and the words). Inline
   waits that belong to one control — a share link being fetched — say so in
   place instead of covering the app.
 - **A destructive action asks first, and the safe answer is the default.** Use

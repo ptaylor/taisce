@@ -965,24 +965,43 @@ main {
   display: block;
 }
 
+/* `fill: none` is not optional on a wave. The straight line this replaced had a
+   degenerate fill, so the default black was invisible; between a wave and its
+   baseline there is an area, and it renders as a black band over the ink. */
+.busy-rule,
+.busy-ink {
+  fill: none;
+}
+
 .busy-rule {
   stroke: var(--line);
   stroke-width: 2;
   stroke-linecap: round;
 }
 
-/* The ink is the same line, drawn on: dashoffset runs from "all gap" to "all
-   ink" while the pencil slides along at the same pace. */
+/* The ink is the same wave, drawn on: dashoffset runs from "all gap" to "all
+   ink" while the pencil rides the wave at the same pace. The path is normalised
+   to 108 units by `pathLength`, so the dash and the motion share one scale. The
+   gap is just longer than the path: with a gap of 108 the pattern repeats a
+   zero-length dash exactly at the far end on the loop's first frame, and the
+   round linecap paints it as a stray dot. */
 .busy-ink {
   stroke: var(--accent);
   stroke-width: 2.4;
   stroke-linecap: round;
-  stroke-dasharray: 108;
+  stroke-dasharray: 108 110;
   stroke-dashoffset: 108;
   animation: busy-ink 1.5s ease-in-out infinite;
 }
 
+/* The same wave as the two paths in index.html: three copies of one `d`. Change
+   them together, or the pencil leaves the ink. The translate in the markup puts
+   the pencil's point at (0, 0), and `offset-anchor: 0 0` pins that point to the
+   path. */
 .busy-pencil {
+  offset-path: path("M10 48 C22 42, 34 42, 46 48 S70 54, 82 48 S106 42, 118 48");
+  offset-anchor: 0 0;
+  offset-rotate: 0deg;
   animation: busy-pencil 1.5s ease-in-out infinite;
 }
 
@@ -992,8 +1011,8 @@ main {
 }
 
 @keyframes busy-pencil {
-  0% { transform: translateX(0); }
-  60%, 100% { transform: translateX(108px); }
+  0% { offset-distance: 0%; }
+  60%, 100% { offset-distance: 100%; }
 }
 
 .busy-label {
@@ -1012,7 +1031,7 @@ main {
 
   .busy-pencil {
     animation: none;
-    transform: translateX(54px);
+    offset-distance: 50%;
   }
 }
 
