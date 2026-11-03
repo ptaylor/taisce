@@ -80,7 +80,7 @@ served.
 | `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
 | `js/ui.js`, `js/errors.js` | Small shared helpers. |
 | `js/config.js` | The app key (a public identifier) and nothing else. |
-| `vendor/` | Pinned `marked`, `DOMPurify` and GoatCounter's `count.js`, with their licences. Not a build step. |
+| `vendor/` | Pinned `marked`, `DOMPurify`, GoatCounter's `count.js` and the Caveat webfont, with their licences. Not a build step. |
 | `icons/` | `icon.svg` is the artwork: flat colours, no gradients, no transforms, because ImageMagick rasterises it. Every PNG comes from `tools/make-icons.sh`. |
 | `tools/make-icons.sh` | Rasterises the icon set (needs ImageMagick). |
 | `sw.js`, `manifest.webmanifest` | PWA shell: network-first, cache name bumped by `publish.sh`. |
@@ -257,6 +257,29 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     first deploy and check the app loads from the `/taisce/` sub-path.
 - **Docs**: [Configuring a publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) ·
   [About GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/about-github-pages)
+
+### Caveat (vendored webfont)
+
+- **Role**: the script the wordmark is set in — the app's name in the header of
+  the connect panel, the help sheet and the settings sheet. A name is not a
+  label, and the interface type is deliberately not used for it.
+- **Version**: Caveat 600, latin subset, 51 KB, `vendor/fonts/caveat-600.woff2`.
+  SIL Open Font License 1.1, in `vendor/fonts/caveat.LICENSE.txt`. From
+  <https://fonts.google.com/specimen/Caveat>.
+- **Best Practices**:
+  - **Vendored, not fetched from Google.** `font-src 'self'` stays as it is, the
+    app works offline, and no request goes to a third party to render its own
+    name. Subsetting or changing the face means updating the file, its licence
+    and the `@font-face` `unicode-range` together.
+  - It is in the service worker's `SHELL`: a cold start offline must not fall
+    back to cursive.
+  - Only `.wordmark` uses it. Keep it that way — a script face at body size is
+    unreadable, and the wordmark is the one place a size adjustment
+    (`font-size: 1.28em`) is legitimate because Caveat sits small for its point
+    size. `--script` in `:root` falls back to the platform's own scripts.
+  - The header's `#title` is *not* the wordmark: it changes to the note's name.
+- **Docs**: <https://fonts.google.com/specimen/Caveat> ·
+  <https://openfontlicense.org/>
 
 ### GoatCounter (analytics)
 

@@ -23,6 +23,7 @@ const SHELL = [
   './js/templates.js',
   './js/ui.js',
   './vendor/count.js',
+  './vendor/fonts/caveat-600.woff2',
   './vendor/marked.esm.js',
   './vendor/purify.es.mjs',
   './docs/',
