@@ -27,6 +27,10 @@ On opening the app the most recent files modifed are shown (configurable in size
 
 A search functaion is provided to search based on the file name (in any directory) (P3)
 
+Each time a Markdown file is opened, a copy of it is written beside it with
+`.bak` appended (`shopping.md.bak`), replacing any previous copy. The copy is
+made in the background and must not delay the file appearing.
+
 ## Markdown Editing
 
 The UX for markfown editing needs to be done so the files look very clear and are beautiful to look at but also editing should be seamless and easy.

@@ -141,6 +141,18 @@ export class DropboxProvider {
     return { text, rev };
   }
 
+  /**
+   * A path's kind, without downloading it. The backup writer checks this before
+   * replacing a backup: a folder at `note.md.bak` must not be deleted with its
+   * contents.
+   * @param {string} path
+   * @returns {Promise<{type: string, rev?: string}>}
+   */
+  async metadata(path) {
+    const meta = await this.rpc('files/get_metadata', { path });
+    return { type: meta['.tag'], rev: meta.rev };
+  }
+
   async write(path, text, rev) {
     const arg = {
       path,

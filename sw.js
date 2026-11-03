@@ -6,6 +6,7 @@ const SHELL = [
   './app.js',
   './js/analytics.js',
   './js/auth.js',
+  './js/backup.js',
   './js/blocks.js',
   './js/config.js',
   './js/dropbox.js',

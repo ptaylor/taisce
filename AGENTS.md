@@ -19,8 +19,9 @@ covers **how** the repository is worked on. When the two disagree about scope,
 **All four phases implemented, not yet published.** Sign-in (PKCE), folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, interactive task lists, new files and folders, recent
-files, filename search, undo/redo with a configurable depth, pasted images, the
-`docs/` guide, the icon set and `publish.sh` all exist and are tested. The site
+files, filename search, undo/redo with a configurable depth, pasted images,
+background `.bak` backups when a note opens, the `docs/` guide, the icon set and
+`publish.sh` all exist and are tested. The site
 has not been published to Pages — the first `./publish.sh` is a decision, not a
 step to take casually.
 
@@ -31,6 +32,9 @@ Known gaps:
   lazy-load strategy beyond object-URL caching for the session.
 - Undo steps are per note and reset on reload, by design — they are a typing
   aid, not a version history.
+- Backups are best-effort and invisible: a failure is logged, not shown, and the
+  next open retries. The old copy is deleted before the new one is written, so a
+  failed upload can leave no backup until then.
 
 ## Commands
 
@@ -65,7 +69,8 @@ served.
 | `app.js` | Wiring only: boot, screens, list, open, save engine hook-up. |
 | `styles.css` | Design tokens (`--bg`, `--accent`, …) and layout. Light and dark. |
 | `js/auth.js` | PKCE, the token store, refresh, sign-out. |
-| `js/dropbox.js` | The Dropbox API client: list (folders + files), read, write, create, create-folder, revoke. |
+| `js/backup.js` | The background `.bak` writer: one write per note at a time, metadata before delete, failures only logged. |
+| `js/dropbox.js` | The Dropbox API client: list (folders + files), read, metadata, write, create, create-folder, remove, revoke. |
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
 | `js/recents.js` | Recent ordering, filename search, the recent-count and open/closed preferences. Pure. |
@@ -458,6 +463,15 @@ Rules:
   attribution is per note (`attachedImages` in `js/images.js`), never the folder.
   A picture belongs to one note because a pasted one is named with a timestamp
   and a random suffix; delete by that attribution rather than by guessing.
+- **A backup is background housekeeping, never part of opening.** `openFile`
+  hands the text it read to `js/backup.js` only after the note is on screen, and
+  does not await it: the file must appear at the same speed with or without a
+  backup. Each open replaces `<note>.md.bak` — metadata first, so a folder at
+  that path is never deleted with its contents — writes to one path are
+  serialised, and a failure is counted (`error-backup`) and logged rather than
+  shown. Do not back up on save
+  (a copy that follows every keystroke is not a backup), and do not back up an
+  empty note, which would only delete a useful earlier copy.
 - **A link is edited where it sits.** Clicking a rendered link opens an editor
   for that one link — text, address, copy, open, remove — rather than following
   it; `js/links.js` finds the link's exact span in the block source and splices

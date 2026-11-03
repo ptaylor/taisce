@@ -116,6 +116,15 @@ export function createMockProvider() {
         }));
     },
 
+    async metadata(path) {
+      await wait();
+      const data = read();
+      if (data.folders.includes(path)) return { type: 'folder' };
+      const entry = data.files[path];
+      if (!entry) throw new Error('path/not_found');
+      return { type: 'file', rev: entry.rev };
+    },
+
     async read(path) {
       await wait();
       const entry = read().files[path];

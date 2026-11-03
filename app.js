@@ -3,6 +3,7 @@ import { DropboxProvider } from './js/dropbox.js';
 import { createMockProvider } from './js/mock.js';
 import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.js';
 import { createSaveEngine } from './js/save.js';
+import { createBackupWriter } from './js/backup.js';
 import { createEditor } from './js/editor.js';
 import { AuthError, ConflictError, ScopeError } from './js/errors.js';
 import { breadcrumbs, isHiddenName, joinPath, normaliseDir, parentDir } from './js/paths.js';
@@ -31,6 +32,12 @@ import { effectiveTheme, themeChoice, THEME_KEY } from './js/theme.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
+const backupNote = createBackupWriter(provider, {
+  warn: (...args) => {
+    trackEvent('error-backup');
+    console.warn(...args);
+  },
+});
 const RECENT_KEY = 'taisce.recentCount';
 const RECENTS_OPEN_KEY = 'taisce.recentsOpen';
 const UNDO_KEY = 'taisce.undoLimit';
@@ -433,6 +440,10 @@ async function openFile(file) {
     engine.open({ path: file.path, text: clean, rev });
     trackEvent('file-open');
     setStatus('loaded');
+    // Housekeeping after the note is on screen, never part of the open: the
+    // backup is the file as read (BOM and line endings included), not the
+    // editor's normalised copy.
+    void backupNote(file.path, text);
   } catch (error) {
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-open');

@@ -42,7 +42,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
               theme-system theme-dark theme-light
   sync        conflict-merged conflict-dropped
   failures    error-open error-save error-search error-share error-image
-              error-delete error-image-delete
+              error-delete error-image-delete error-backup
               share-scope         (the grant predates sharing.read)
 
 Anything not listed falls into an "other" bucket so a new event is never lost
@@ -344,7 +344,7 @@ SETTINGS_EVENTS = (
 SYNC_EVENTS = ("conflict-merged", "conflict-dropped")
 FAILURE_EVENTS = (
     "error-open", "error-save", "error-search", "error-share", "error-image",
-    "error-delete", "error-image-delete",
+    "error-delete", "error-image-delete", "error-backup",
 )
 
 KNOWN_EVENTS = (

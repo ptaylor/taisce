@@ -24,6 +24,11 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   line quoted instead of ending the quote after the first one.
 - **There is no Save button.** Edits save by themselves about a second after you
   stop typing, and when the app is put away. There is no Cancel button either.
+- **Opening a note makes a backup beside it.** The copy is named `note.md.bak`,
+  replaces the previous one (which goes to the Dropbox trash), and is written in
+  the background, so opening does not wait for it. It holds the file as it was
+  when you opened it — later edits do not touch it — and it is an ordinary file
+  in your Dropbox account. Taisce does not list it as a note.
 - **Delete a note** with the trash can in its corner. It asks first — naming the
   file, and how many pictures it carries — then moves both the note and the
   pictures it links to into the Dropbox trash, where you can restore them at
@@ -63,8 +68,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 **All four phases are working** — sign-in, folders with nesting and breadcrumb
 navigation, rendered Markdown, in-place editing with autosave, interactive task
 lists, new files and folders, recent files, filename search, undo/redo, pasted
-images, the slash menu for templates, the link editor, sharing a file as a
-Dropbox link, the guide at
+images, background `.bak` backups on open, the slash menu for templates, the
+link editor, sharing a file as a Dropbox link, the guide at
 [`docs/`](./docs/index.html), icons and the publish script.
 Not yet done, and deliberately so: offline writing (a save while offline errors
 and keeps your text) and any sharing beyond your Dropbox account.
