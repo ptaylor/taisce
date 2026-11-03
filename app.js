@@ -78,6 +78,29 @@ darkScheme.addEventListener('change', () => {
 
 applyTheme();
 
+// The app is one document with three screens and no address of its own, so the
+// Android back gesture is browser history. Without entries of our own it takes
+// the reader out of the app — and, in the session that signed in, it can reach
+// the Dropbox authorisation page, which a standalone window cannot leave.
+// Every screen change records the screen it is about to show; `popstate`
+// replays it, so the system back button and the header's arrow are one path.
+// Note paths live only in `history.state`: the address bar must stay clear of
+// them, because analytics sends `location.search` with every hit.
+const VIEW = 'taisce';
+let currentView = { screen: 'list', dir: '' };
+let navId = 0;
+
+function depthOf(record) {
+  return record && record[VIEW] ? Number(record.depth) || 0 : 0;
+}
+
+function recordView(view, { push = false } = {}) {
+  currentView = view;
+  const record = { [VIEW]: true, ...view, depth: depthOf(history.state) + (push ? 1 : 0) };
+  if (push) history.pushState(record, '');
+  else history.replaceState(record, '');
+}
+
 function updateHistoryButtons({ canUndo, canRedo }) {
   $('#undo').disabled = !canUndo;
   $('#redo').disabled = !canRedo;
@@ -212,6 +235,13 @@ async function uploadPastedImage(file) {
 }
 
 function showAuth() {
+  // Losing the token can happen while a read is in flight. The auth screen is
+  // now the screen: stop the stale navigation, own the busy overlay (its
+  // finally will no longer hide it), and record the screen so Back has a
+  // truthful entry to return to.
+  ++navId;
+  recordView({ screen: 'auth' });
+  hideBusy();
   setTitle('Taisce');
   setStatus('ready');
   setScreen('auth');
@@ -239,7 +269,7 @@ function renderCrumbs() {
     } else {
       node.type = 'button';
       node.addEventListener('click', () => {
-        void loadList(crumb.path);
+        void loadList(crumb.path, { push: true });
       });
       const sep = document.createElement('span');
       sep.className = 'sep';
@@ -349,7 +379,7 @@ function renderList() {
     fragment.appendChild(
       makeEntry(entry, {
         onOpen: () => {
-          if (entry.type === 'folder') void loadList(entry.path);
+          if (entry.type === 'folder') void loadList(entry.path, { push: true });
           else void openFile(entry);
         },
       }),
@@ -371,8 +401,11 @@ function renderList() {
   setStatus('ready', `${parts.join(' · ') || 'empty'}${MOCK ? ' · demo' : ''}`);
 }
 
-async function loadList(dir = state.dir) {
-  state.dir = normaliseDir(dir);
+async function loadList(dir = state.dir, { push = false } = {}) {
+  const id = ++navId;
+  dir = normaliseDir(dir);
+  recordView({ screen: 'list', dir }, { push });
+  state.dir = dir;
   state.query = '';
   state.countedQuery = '';
   $('#search').value = '';
@@ -391,8 +424,13 @@ async function loadList(dir = state.dir) {
     // are needed the two requests overlap rather than queue.
     const listing = provider.list(state.dir);
     const indexed = state.dir ? null : ensureIndex();
-    state.entries = await listing;
+    const entries = await listing;
     await indexed;
+
+    // A back press can arrive while a folder is loading. The newest navigation
+    // owns the screen; a listing that finishes late must not draw over it.
+    if (id !== navId) return;
+    state.entries = entries;
 
     // Typing during a load is easy on a phone. Do not lose it: the query wins,
     // and the index is fetched if this folder did not already need one.
@@ -400,10 +438,12 @@ async function loadList(dir = state.dir) {
     if (typed) {
       state.query = typed;
       await ensureIndex();
+      if (id !== navId) return;
     }
 
     renderList();
   } catch (error) {
+    if (id !== navId) return;
     if (error instanceof AuthError) return showAuth();
     if (/path\/not_found/.test(error.message || '')) {
       toast('That folder no longer exists');
@@ -411,16 +451,20 @@ async function loadList(dir = state.dir) {
     }
     setStatus('error', error.message || 'could not list files');
   } finally {
-    hideBusy();
+    if (id === navId) hideBusy();
   }
 }
 
-async function openFile(file) {
+async function openFile(file, { push = true } = {}) {
+  const id = ++navId;
   await engine.flush();
+  if (id !== navId) return;
   engine.close();
 
+  const dir = parentDir(file.path);
+  recordView({ screen: 'file', path: file.path, name: file.name, dir }, { push });
   state.file = file;
-  state.dir = parentDir(file.path);
+  state.dir = dir;
   state.query = '';
   $('#search').value = '';
   setScreen('file');
@@ -435,6 +479,7 @@ async function openFile(file) {
 
   try {
     const { text, rev } = await provider.read(file.path);
+    if (id !== navId) return;
     const clean = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     editor.setText(clean);
     engine.open({ path: file.path, text: clean, rev });
@@ -445,20 +490,24 @@ async function openFile(file) {
     // editor's normalised copy.
     void backupNote(file.path, text);
   } catch (error) {
+    if (id !== navId) return;
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-open');
     setStatus('error', error.message || 'could not open the file');
   } finally {
-    hideBusy();
+    if (id === navId) hideBusy();
   }
 }
 
 async function refresh() {
   if (state.file && !$('#screen-file').hidden) {
+    const id = ++navId;
     await engine.flush();
+    if (id !== navId) return;
     setStatus('loading');
     try {
       const { text, rev } = await provider.read(state.file.path);
+      if (id !== navId) return;
       const clean = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
       if (clean !== editor.text()) {
         editor.setText(clean);
@@ -467,6 +516,7 @@ async function refresh() {
       engine.open({ path: state.file.path, text: clean, rev });
       setStatus('loaded');
     } catch (error) {
+      if (id !== navId) return;
       setStatus('error', error.message || 'reload failed');
     }
     return;
@@ -475,6 +525,13 @@ async function refresh() {
 }
 
 async function goBack() {
+  // With the screens in history, the header arrow asks for the same traversal
+  // as the system back button; `popstate` restores the screen. The code below
+  // is the fallback for a screen with no entry under it.
+  if (depthOf(history.state) > 0) {
+    history.back();
+    return;
+  }
   if (!$('#screen-file').hidden) {
     await engine.flush();
     engine.close();
@@ -483,6 +540,26 @@ async function goBack() {
     return;
   }
   if (state.dir) await loadList(parentDir(state.dir));
+}
+
+async function restoreView(view) {
+  if (view.screen === 'auth') {
+    showAuth();
+    return;
+  }
+  if (view.screen === 'file' && !view.deleted) {
+    await openFile({ name: view.name, path: view.path, type: 'file' }, { push: false });
+    return;
+  }
+
+  // Coming back from a note still has to save and close it before the listing
+  // takes over the editor. A deleted note's Forward entry lands here too.
+  if (state.file) {
+    await engine.flush();
+    engine.close();
+    state.file = null;
+  }
+  await loadList(view.dir, { push: false });
 }
 
 function showNewFile() {
@@ -651,7 +728,7 @@ async function deleteFile() {
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-delete');
     toast(error.message || 'could not delete the file');
-    await openFile(file); // the note is still there: put it back on screen
+    await openFile(file, { push: false }); // the note is still there: put it back on screen
     return;
   }
 
@@ -663,7 +740,15 @@ async function deleteFile() {
   const dir = state.dir;
   state.file = null;
   editor.setText('');
-  await loadList(dir);
+  if (depthOf(history.state) > 0) {
+    // The listing is the entry underneath the note. Popping to it is what the
+    // reader expects, and it does not leave a duplicate step behind. Mark the
+    // note's entry first so a Forward cannot reopen a file that is gone.
+    history.replaceState({ ...history.state, deleted: true }, '');
+    history.back();
+  } else {
+    await loadList(dir);
+  }
   toast(
     failedPictures
       ? `Deleted “${file.name}” — ${failedPictures} picture${failedPictures === 1 ? '' : 's'} could not be`
@@ -728,6 +813,7 @@ function showHelp() {
 let searchTimer = 0;
 
 async function runSearch(value) {
+  const id = navId;
   state.query = String(value || '').trim();
   if (!state.query) {
     renderList();
@@ -736,8 +822,12 @@ async function runSearch(value) {
   setStatus('loading');
   try {
     await ensureIndex();
+    // The reader can back out of the folder while the index is loading; the
+    // search must not paint over the screen that replaced it.
+    if (id !== navId) return;
     renderList();
   } catch (error) {
+    if (id !== navId) return;
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-search');
     setStatus('error', error.message || 'search failed');
@@ -913,6 +1003,34 @@ async function boot() {
       event.preventDefault();
       void runSearch(event.target.value).then(countSearch);
     }
+  });
+
+  // Back closes an open sheet before it changes the screen. The traversal has
+  // already popped the entry belonging to the screen underneath, so that entry
+  // is pushed back; otherwise closing a sheet with Back would also navigate the
+  // app. The stack matters because a confirmation can open on top of Settings
+  // or the image viewer.
+  const dialogStack = [];
+  for (const dialog of document.querySelectorAll('dialog')) {
+    dialog.addEventListener('toggle', (event) => {
+      const index = dialogStack.indexOf(dialog);
+      if (event.newState === 'open' && index === -1) dialogStack.push(dialog);
+      else if (event.newState === 'closed' && index !== -1) dialogStack.splice(index, 1);
+    });
+  }
+
+  window.addEventListener('popstate', (event) => {
+    const dialog = dialogStack[dialogStack.length - 1];
+    if (dialog) {
+      dialog.close();
+      const depth = depthOf(event.state) + 1;
+      history.pushState({ [VIEW]: true, ...currentView, depth }, '');
+      return;
+    }
+
+    const view = event.state;
+    if (!view || !view[VIEW]) return; // the traversal has left the app
+    void restoreView(view);
   });
 
   document.addEventListener('visibilitychange', () => {

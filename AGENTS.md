@@ -442,6 +442,18 @@ Rules:
   `assets/`; those references keep working (resolution follows the reference,
   not the folder name) and that folder stays visible until it is renamed in
   Dropbox.
+- **The system back button and the back arrow are one history traversal.** The
+  app is a single document with no address of its own, so the Android back
+  gesture only has somewhere to go if the screens are history entries:
+  `loadList` and `openFile` record `{screen, dir, path, name, depth}` in
+  `history.state` (`recordView` in `app.js`), `popstate` restores the screen,
+  and the header arrow calls `history.back()` rather than stepping screens
+  behind history's back. Never put a note path in the URL: `js/analytics.js`
+  sends `location.search` with every hit. `navId` makes the newest navigation
+  win — a folder listing or note read that finishes after a back press must not
+  paint over the screen that replaced it. Back closes an open sheet before it
+  moves the screen. Deleting a note marks its entry `deleted` before popping it,
+  so Forward cannot reopen a file that is gone.
 - **A wait never looks like the previous screen.** Anything that awaits the
   network — opening a folder, opening a note, uploading a pasted picture —
   clears what it is about to replace *before* awaiting, and covers the screen

@@ -42,8 +42,11 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   new tab or remove it. To link words you have already written, select them
   while the block is open and paste the address over them.
 - **Folders work like folders.** Tap one to go in; the back arrow comes back up,
-  and two levels down a trail lets you jump to an outer folder. **+** creates a file or a folder in the
-  folder you are looking at, so nesting is just a matter of going in first.
+  and the phone's own back button takes the same steps — a note returns to the
+  folder it came from, and an open sheet closes before the screen moves. Two
+  levels down a trail lets you jump to an outer folder. **+** creates a file or a
+  folder in the folder you are looking at, so nesting is just a matter of going
+  in first.
 - **Undo, without a Save button.** The round buttons at the bottom right (or
   Cmd/Ctrl+Z) step back through block edits; how many steps are kept is a
   setting. Undo survives the autosave, because it writes like any other edit.
