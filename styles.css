@@ -1095,9 +1095,21 @@ main {
 }
 
 .where {
-  margin: -0.4rem 0 0.9rem;
+  margin: 0 0 0.9rem;
   font-size: 0.85rem;
   color: var(--dim);
+}
+
+/* A byline tucks under the heading's own bottom margin. */
+.sheet h2 + .where {
+  margin-top: -0.4rem;
+}
+
+/* A message after a field is not a byline; a negative top margin would put it
+   inside the control above, so it gets its own gap instead. */
+.field + .where,
+.share-url + .where {
+  margin-top: 0.55rem;
 }
 
 /* A sheet identifies the app and then says which sheet it is: the heading is
