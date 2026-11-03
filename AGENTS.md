@@ -72,6 +72,8 @@ served.
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
 | `js/images.js` | Asset naming, the `_assets/` location, image-link resolution. Pure. |
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
+| `js/theme.js` | Theme choice parsing and the effective light/dark decision. Pure. |
+| `js/theme-boot.js` | A classic, pre-paint script that applies the stored theme before the stylesheet loads. |
 | `js/analytics.js` | The only caller of GoatCounter: guarded `trackView`/`trackEvent`, and the demo switch. |
 | `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
 | `js/paste.js` | Blockquote-aware paste: gives every pasted line the quote marker it is pasted into. Pure. |
@@ -113,6 +115,9 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
   - One deliberate departure from the house "single file" preference: a service
     worker must be its own URL, and any module the tests import must be a real
     module. So the JavaScript is ES modules under `js/`, not one inlined blob.
+  - A classic script is the one exception, and only where a module's deferral
+    would be visible: `js/theme-boot.js` sets the theme before the first paint.
+    Keep it dependency-free and in step with the module that shares its key.
   - Keep modules importable in Node with no DOM dependency where the logic is
     pure (paths, task-list parsing, Markdown rendering); that is what `node
     --test` tests. The DOM-facing code stays thin.
@@ -504,7 +509,12 @@ Rules:
   the brand blue is unreadable on a dark page, and pairs it with `--on-accent`
   so button text stays legible. Keep the palette in one place so the CSS, the
   manifest `theme_color`, the meta theme colours and `icons/icon.svg` cannot
-  disagree.
+  disagree. The palette is written `light-dark(light, dark)`, so a page with no
+  choice of its own — the guide and the privacy policy share this stylesheet —
+  follows the device. `data-theme` on `<html>` sets `color-scheme`, which is what
+  makes an explicit choice win: `js/theme-boot.js` sets it before the first paint
+  and `js/theme.js` keeps it current. `--chrome` is copied into the
+  `theme-color` metas, so an explicit choice also colours the browser's own bar.
 - **Verify before claiming done.** Run the tests and load the page — a static
   site has no compiler to catch a broken module path, and the deployed
   sub-path is where relative URLs go wrong.

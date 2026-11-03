@@ -55,6 +55,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Disconnect** lives in **Settings**, under the account it belongs to. It asks
   Dropbox to revoke the app’s access and forgets it on the device; your files are
   never touched.
+- **Light, dark or system theme**, chosen in **Settings** and remembered on the
+  device.
 
 ## Status
 

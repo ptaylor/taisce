@@ -1,19 +1,27 @@
 :root {
   color-scheme: light dark;
 
-  /* St Patrick's Blue (#23297a) is the brand colour and the light accent. */
-  --bg: #f5f6fb;
-  --panel: #ffffff;
-  --line: #dde1ef;
-  --fg: #191c38;
-  --dim: #565d85;
-  --accent: #23297a;
-  --on-accent: #ffffff;
-  --accent-soft: #e9ebf9;
-  --ok: #1a7f56;
-  --warn: #94570a;
-  --err: #ad2020;
-  --code-bg: #f0f2fa;
+  /* St Patrick's Blue (#23297a) is the brand colour and the light accent.
+     Each token is light-dark(light, dark), so a page with no theme choice —
+     the guide and the privacy policy share this stylesheet — follows the
+     device, while the app's explicit choice sets color-scheme on <html>.
+     The dark accent is a lightened tint of the brand hue: the brand blue is
+     unreadable on a dark page. */
+  --bg: light-dark(#f5f6fb, #0d1026);
+  --panel: light-dark(#ffffff, #151a3a);
+  --line: light-dark(#dde1ef, #262d59);
+  --fg: light-dark(#191c38, #e6e8f7);
+  --dim: light-dark(#565d85, #98a0cc);
+  --accent: light-dark(#23297a, #8f9bf0);
+  --on-accent: light-dark(#ffffff, #0d1026);
+  --accent-soft: light-dark(#e9ebf9, #1b2148);
+  --ok: light-dark(#1a7f56, #3ddc97);
+  --warn: light-dark(#94570a, #ffb020);
+  --err: light-dark(#ad2020, #ff7a7a);
+  --code-bg: light-dark(#f0f2fa, #111530);
+  /* The browser's own chrome follows the theme; js/theme.js copies this into
+     the theme-color metas so an explicit choice is not overruled by the OS. */
+  --chrome: #23297a;
 
   --radius: 12px;
   --measure: 44rem;
@@ -45,23 +53,17 @@
   display: none !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* The brand blue is too dark to read on a dark page, so the dark accent
-       is a lightened tint of the same hue. */
-    --bg: #0d1026;
-    --panel: #151a3a;
-    --line: #262d59;
-    --fg: #e6e8f7;
-    --dim: #98a0cc;
-    --accent: #8f9bf0;
-    --on-accent: #0d1026;
-    --accent-soft: #1b2148;
-    --ok: #3ddc97;
-    --warn: #ffb020;
-    --err: #ff7a7a;
-    --code-bg: #111530;
-  }
+/* The theme arrives as `data-theme` on <html>: the boot script sets it before
+   the first paint, and js/theme.js keeps it in step afterwards. Changing
+   `color-scheme` is what re-resolves the light-dark() tokens, and what makes
+   form controls and scrollbars match an explicit choice. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --chrome: #0d1026;
 }
 
 * {

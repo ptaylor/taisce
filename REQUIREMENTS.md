@@ -9,6 +9,8 @@ Name
 
 Taisce is a PWA based web application that can be run on both Desktop browsers and on mobile devides.  Since it is a PWA it can be installed as an App on digital devices.
 
+The theme is chosen in Settings from System, Dark or Light, and is remembered on the device.
+
 ## Taisce Files
 
 Most Taisce files are markdown files.   

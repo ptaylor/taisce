@@ -27,6 +27,7 @@ import {
 } from './js/ui.js';
 import { canShare, sharePayload, viewableLink } from './js/share.js';
 import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js';
+import { effectiveTheme, themeChoice, THEME_KEY } from './js/theme.js';
 
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
@@ -45,7 +46,30 @@ const state = {
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
   recentsOpen: recentsOpen(localStorage.getItem(RECENTS_OPEN_KEY)),
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
+  theme: themeChoice(localStorage.getItem(THEME_KEY)),
 };
+
+const darkScheme = matchMedia('(prefers-color-scheme: dark)');
+
+// The boot script painted the stored theme before the stylesheet resolved;
+// this keeps the attribute, the browser chrome colour and a live System choice
+// in step once the app is running.
+function applyTheme() {
+  const theme = effectiveTheme(state.theme, darkScheme.matches);
+  document.documentElement.dataset.theme = theme;
+  const chrome = getComputedStyle(document.documentElement).getPropertyValue('--chrome').trim();
+  if (chrome) {
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+      meta.content = chrome;
+    }
+  }
+}
+
+darkScheme.addEventListener('change', () => {
+  if (state.theme === 'system') applyTheme();
+});
+
+applyTheme();
 
 function updateHistoryButtons({ canUndo, canRedo }) {
   $('#undo').disabled = !canUndo;
@@ -723,6 +747,9 @@ function countSearch() {
 function openSettings() {
   $('#recent-count').value = String(state.recentMax);
   $('#undo-limit').value = String(state.undoMax);
+  for (const input of document.querySelectorAll('input[name="theme"]')) {
+    input.checked = input.value === state.theme;
+  }
   $('#settings').showModal();
   setTimeout(() => $('#recent-count').focus(), 60);
 }
@@ -731,9 +758,14 @@ function saveSettings(event) {
   event.preventDefault();
   state.recentMax = recentCount($('#recent-count').value);
   state.undoMax = undoLimit($('#undo-limit').value);
+  const nextTheme = themeChoice(document.querySelector('input[name="theme"]:checked')?.value);
+  if (nextTheme !== state.theme) trackEvent(`theme-${nextTheme}`);
+  state.theme = nextTheme;
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
   localStorage.setItem(UNDO_KEY, String(state.undoMax));
+  localStorage.setItem(THEME_KEY, state.theme);
   editor.setUndoLimit(state.undoMax);
+  applyTheme();
   trackEvent('settings-save');
   $('#settings').close();
   if (!$('#screen-list').hidden) renderList();

@@ -22,6 +22,8 @@ const SHELL = [
   './js/save.js',
   './js/share.js',
   './js/templates.js',
+  './js/theme-boot.js',
+  './js/theme.js',
   './js/ui.js',
   './vendor/count.js',
   './vendor/fonts/caveat-600.woff2',

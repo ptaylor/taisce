@@ -39,6 +39,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
   links       link-open link-change link-remove link-copy link-go link-paste
   share       share-open share-copy share-send
   settings    settings-open settings-save help-open recent-toggle installed
+              theme-system theme-dark theme-light
   sync        conflict-merged conflict-dropped
   failures    error-open error-save error-search error-share error-image
               error-delete error-image-delete
@@ -338,6 +339,7 @@ LINK_EVENTS = (
 SHARE_EVENTS = ("share-open", "share-copy", "share-send", "share-scope")
 SETTINGS_EVENTS = (
     "settings-open", "settings-save", "help-open", "recent-toggle", "installed",
+    "theme-system", "theme-dark", "theme-light",
 )
 SYNC_EVENTS = ("conflict-merged", "conflict-dropped")
 FAILURE_EVENTS = (

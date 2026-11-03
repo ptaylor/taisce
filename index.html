@@ -16,6 +16,9 @@
 <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="./icons/icon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<!-- Before the stylesheet, and classic rather than a module, so the stored
+     theme is on <html> before the first paint. See js/theme-boot.js. -->
+<script src="./js/theme-boot.js"></script>
 <link rel="stylesheet" href="./styles.css">
 <!-- Vendored, not loaded from gc.zgo.at: see vendor/count.js. no_onload because
      the app decides for itself — the demo (?mock=1) is not counted. -->
@@ -196,6 +199,12 @@
           <span id="settings-version" class="about-version"></span></p>
       </div>
     </div>
+    <fieldset class="kinds">
+      <legend>Theme</legend>
+      <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+      <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+      <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+    </fieldset>
     <label class="field">
       <span>Recent files shown on the home screen</span>
       <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">
