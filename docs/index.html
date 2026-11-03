@@ -57,10 +57,20 @@
         in any other Markdown editor that can see the same folder.</li>
     </ul>
 
+    <h2>Backups</h2>
+    <p>Opening a note writes a copy beside it, named <code>note.md.bak</code>, and
+      replaces the previous copy, which goes to the Dropbox trash. The copy is
+      made in the background, so the note does not wait for it, and it holds the
+      file as it was when you opened it:
+      edits you make afterwards do not change it. It is an ordinary file in your
+      Dropbox account — Taisce does not list it as a note — so you can restore
+      from it with Dropbox or any editor. An empty note is left alone, because
+      an empty backup would only replace a useful one.</p>
+
     <h2>Waiting</h2>
     <p>Fetching a folder, opening a note and uploading a pasted picture all take
-      a moment, and while they do the screen says so: a pencil writes a line
-      across it, under a few words about what is happening. Nothing from the
+      a moment, and while they do the screen says so: a pencil writes a wavy
+      line across it, under a few words about what is happening. Nothing from the
       previous note is shown in the meantime — a note that appears under the
       wrong name, even for a moment, is worse than an empty screen. If your
       device asks for reduced motion, the pencil and the words stay and the
@@ -116,17 +126,25 @@
     <ul>
       <li>The home screen shows the <strong>files you changed most recently</strong>,
         then the top level of the folder. <strong>Recent</strong> is a heading you
-        can fold away — tap it — and it is open to begin with. How many recent
-        files it shows is configurable under <strong>Settings</strong>.</li>
+        can fold away — tap it — and it is open to begin with. Folding it away
+        is remembered on this device. How many recent files it shows is
+        configurable under <strong>Settings</strong>.</li>
       <li><strong>Search</strong> by file name across every folder. The folder a
         match lives in is shown beside it.</li>
       <li><strong>+</strong> creates a file or a folder in the folder you are
         looking at; open a folder to nest inside it.</li>
-      <li>The back arrow takes you back up a level. Two levels down, the trail
-        at the top appears as well, so you can jump straight to an outer
-        folder.</li>
+      <li>The back arrow takes you back up a level. The phone's own back button
+        takes the same steps: a note returns to the folder it came from, and an
+        open sheet closes before the screen moves. Two levels down, the trail at
+        the top appears as well, so you can jump straight to an outer folder.</li>
       <li>Only Markdown files are listed. Other files are left alone.</li>
     </ul>
+
+    <h2>Theme and settings</h2>
+    <p><strong>Settings</strong> holds the number of recent files, the undo
+      depth, and the theme. The theme can follow the device
+      (<strong>System</strong>) or stay <strong>Dark</strong> or
+      <strong>Light</strong>; the choice is remembered on this device.</p>
 
     <h2>Install it like an app</h2>
     <p>Taisce is a PWA. Served over HTTPS it installs to a home screen and keeps

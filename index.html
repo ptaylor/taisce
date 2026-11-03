@@ -16,13 +16,16 @@
 <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="./icons/icon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<!-- Before the stylesheet, and classic rather than a module, so the stored
+     theme is on <html> before the first paint. See js/theme-boot.js. -->
+<script src="./js/theme-boot.js"></script>
 <link rel="stylesheet" href="./styles.css">
 <!-- Vendored, not loaded from gc.zgo.at: see vendor/count.js. no_onload because
      the app decides for itself — the demo (?mock=1) is not counted. -->
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.27">
+<meta name="app-version" content="v0.28">
 </head>
 <body>
 
@@ -135,19 +138,21 @@
   </section>
 </main>
 
-<!-- Shown while something is being fetched. A pencil writes the line the app is
-     waiting for; see .busy in styles.css. Solid, not translucent: whatever was
-     on screen before must not show through. -->
+<!-- Shown while something is being fetched. A pencil writes the wavy line the
+     app is waiting for; see .busy in styles.css. Solid, not translucent:
+     whatever was on screen before must not show through. -->
 <div id="busy" class="busy" role="status" aria-live="polite" hidden>
   <svg class="busy-art" viewBox="0 0 128 60" width="128" height="60" aria-hidden="true"
        focusable="false">
-    <path class="busy-rule" d="M10 48 H118"/>
-    <path class="busy-ink" d="M10 48 H118"/>
+    <path class="busy-rule" pathLength="108" d="M10 48 C22 42, 34 42, 46 48 S70 54, 82 48 S106 42, 118 48"/>
+    <path class="busy-ink" pathLength="108" d="M10 48 C22 42, 34 42, 46 48 S70 54, 82 48 S106 42, 118 48"/>
     <g class="busy-pencil">
-      <g transform="rotate(-38 12 40)">
-        <path d="M12 40 L19 36.6 L12 33.2 Z" fill="#545d9e"/>
-        <rect x="18.6" y="33.6" width="17" height="6.4" rx="0.8" fill="#23297a"/>
-        <rect x="35" y="33.6" width="3.6" height="6.4" rx="0.8" fill="#1a8f5f"/>
+      <g transform="translate(-12 -40)">
+        <g transform="rotate(-38 12 40)">
+          <path d="M12 40 L18.6 36.8 L18.6 43.2 Z" fill="#545d9e"/>
+          <rect x="18.6" y="36.8" width="17" height="6.4" rx="0.8" fill="#23297a"/>
+          <rect x="35" y="36.8" width="3.6" height="6.4" rx="0.8" fill="#1a8f5f"/>
+        </g>
       </g>
     </g>
   </svg>
@@ -190,10 +195,16 @@
       <img class="sheet-logo" src="./icons/icon-64.png" alt="" width="32" height="32" aria-hidden="true">
       <div>
         <h2 id="settings-title">Settings</h2>
-        <p class="sheet-app"><span class="wordmark">Taisce</span>
+        <p class="sheet-app"><span class="sheet-name">Taisce</span>
           <span id="settings-version" class="about-version"></span></p>
       </div>
     </div>
+    <fieldset class="kinds">
+      <legend>Theme</legend>
+      <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+      <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+      <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+    </fieldset>
     <label class="field">
       <span>Recent files shown on the home screen</span>
       <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">
@@ -260,7 +271,7 @@
   <div class="about">
     <img class="about-logo" src="./icons/icon-192.png" alt="" width="56" height="56" aria-hidden="true">
     <div>
-      <h2><span class="wordmark">Taisce</span>
+      <h2><span class="sheet-name">Taisce</span>
         <span id="help-version" class="about-version"></span></h2>
       <p class="about-line">View and edit Markdown files in your Dropbox account</p>
     </div>
