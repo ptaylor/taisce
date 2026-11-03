@@ -178,9 +178,9 @@ body {
   border-radius: 1rem;
 }
 
-/* The name is Irish, and a serif italic is the one place it is set apart from
-   the interface type. Sized by context: a wordmark on the connect panel, a
-   heading in the help sheet. */
+/* The name is Irish, and the wordmark is the one place it is set apart from the
+   interface type: the connect panel's header, where it stands for the app
+   rather than labelling a screen. */
 .wordmark {
   font-family: var(--script);
   font-weight: 600;
@@ -1155,7 +1155,15 @@ main {
   color: var(--dim);
 }
 
-.sheet-app .wordmark {
+/* The icon identifies the app; the name is a label in the interface type —
+   italic, not the script wordmark. Each sheet sizes it for its own heading. */
+.sheet-name {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sheet-app .sheet-name {
   font-size: 1.15rem;
 }
 
@@ -1175,7 +1183,7 @@ main {
   margin: 0 0 0.15rem;
 }
 
-.about .wordmark {
+.about .sheet-name {
   font-size: 1.6rem;
 }
 

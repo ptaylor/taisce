@@ -262,8 +262,9 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
 ### Caveat (vendored webfont)
 
 - **Role**: the script the wordmark is set in — the app's name in the header of
-  the connect panel, the help sheet and the settings sheet. A name is not a
-  label, and the interface type is deliberately not used for it.
+  the connect panel. The settings and help sheets set the name in italic
+  interface type: there it labels the sheet rather than standing for the app on
+  its own.
 - **Version**: Caveat 600, latin subset, 51 KB, `vendor/fonts/caveat-600.woff2`.
   SIL Open Font License 1.1, in `vendor/fonts/caveat.LICENSE.txt`. From
   <https://fonts.google.com/specimen/Caveat>.
