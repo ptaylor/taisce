@@ -76,3 +76,19 @@ export function ask({ title, body, ok, danger = false }) {
     dialog.showModal();
   });
 }
+
+/**
+ * Cover the screen while something is being fetched, so a wait never looks like
+ * the previous screen holding still. `label` says what is being waited for.
+ */
+export function showBusy(label = 'Loading…') {
+  const el = $('#busy');
+  if (!el) return;
+  $('#busy-label').textContent = label;
+  el.hidden = false;
+}
+
+export function hideBusy() {
+  const el = $('#busy');
+  if (el) el.hidden = true;
+}
