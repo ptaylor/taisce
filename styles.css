@@ -924,6 +924,78 @@ main {
   box-shadow: none;
 }
 
+/* ------------------------------------------------------------------ busy */
+
+/* A wait has to look like a wait. Solid rather than translucent, because the
+   thing behind it is the *previous* screen — a stale note under a spinner is
+   exactly the flash this replaced. */
+.busy {
+  position: fixed;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.busy-art {
+  display: block;
+}
+
+.busy-rule {
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* The ink is the same line, drawn on: dashoffset runs from "all gap" to "all
+   ink" while the pencil slides along at the same pace. */
+.busy-ink {
+  stroke: var(--accent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 108;
+  stroke-dashoffset: 108;
+  animation: busy-ink 1.5s ease-in-out infinite;
+}
+
+.busy-pencil {
+  animation: busy-pencil 1.5s ease-in-out infinite;
+}
+
+@keyframes busy-ink {
+  0% { stroke-dashoffset: 108; }
+  60%, 100% { stroke-dashoffset: 0; }
+}
+
+@keyframes busy-pencil {
+  0% { transform: translateX(0); }
+  60%, 100% { transform: translateX(108px); }
+}
+
+.busy-label {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--dim);
+  text-align: center;
+}
+
+/* Reduced motion keeps the pencil and the words, drops the writing. */
+@media (prefers-reduced-motion: reduce) {
+  .busy-ink {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .busy-pencil {
+    animation: none;
+    transform: translateX(54px);
+  }
+}
+
 /* --------------------------------------------------------------- dialogs */
 
 .sheet {

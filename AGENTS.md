@@ -396,6 +396,16 @@ Rules:
     commit, in one line, so the next person knows it was a decision.
   Removing a feature retires its events by the same rule. The vocabulary is
   documented under **GoatCounter** below and must match the code exactly.
+- **A wait never looks like the previous screen.** Anything that awaits the
+  network — opening a folder, opening a note, uploading a pasted picture —
+  clears what it is about to replace *before* awaiting, and covers the screen
+  with `showBusy(label)` until the answer arrives: a new note's name above the
+  last note's text is a lie for as long as the read takes, and a stale note is
+  worse than a blank one. `#busy` is solid rather than translucent for the same
+  reason, and its pencil writes the line it is waiting for (motion dropped under
+  `prefers-reduced-motion`, which keeps the picture and the words). Inline
+  waits that belong to one control — a share link being fetched — say so in
+  place instead of covering the app.
 - **A destructive action asks first, and the safe answer is the default.** Use
   `ask({ title, body, ok, danger: true })` from `js/ui.js`: the title names the
   thing (`Delete "shopping"?`), the body says where it goes and what is left

@@ -15,7 +15,16 @@ import {
   markdownImage,
   resolveImagePath,
 } from './js/images.js';
-import { $, ask, setScreen, setStatus, setTitle, toast } from './js/ui.js';
+import {
+  $,
+  ask,
+  hideBusy,
+  setScreen,
+  setStatus,
+  setTitle,
+  showBusy,
+  toast,
+} from './js/ui.js';
 import { canShare, sharePayload, viewableLink } from './js/share.js';
 import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js';
 
@@ -150,19 +159,24 @@ async function uploadPastedImage(file) {
   if (!state.file) throw new Error('open a note before pasting an image');
 
   const dir = assetDirFor(state.file.path);
+  showBusy('Saving the picture…');
   try {
-    await provider.createFolder(dir);
-  } catch (error) {
-    if (!(error instanceof ConflictError)) throw error;
-  }
+    try {
+      await provider.createFolder(dir);
+    } catch (error) {
+      if (!(error instanceof ConflictError)) throw error;
+    }
 
-  // Two pastes inside one second would otherwise collide, and an upload is
-  // created rather than renamed, so the second would fail.
-  const name = imageFileName(file.type, Date.now(), Math.random().toString(36).slice(2, 6));
-  const target = joinPath(dir, name);
-  await provider.uploadFile(target, file);
-  imageUrls.delete(target);
-  return markdownImage(name);
+    // Two pastes inside one second would otherwise collide, and an upload is
+    // created rather than renamed, so the second would fail.
+    const name = imageFileName(file.type, Date.now(), Math.random().toString(36).slice(2, 6));
+    const target = joinPath(dir, name);
+    await provider.uploadFile(target, file);
+    imageUrls.delete(target);
+    return markdownImage(name);
+  } finally {
+    hideBusy();
+  }
 }
 
 function showAuth() {
@@ -333,6 +347,7 @@ async function loadList(dir = state.dir) {
   setTitle('Taisce');
   setScreen('list', { back: Boolean(state.dir) });
   setStatus('loading');
+  showBusy(state.dir ? 'Opening the folder…' : 'Fetching your files…');
   renderCrumbs();
   $('#file-list').replaceChildren();
   $('#recents-block').hidden = true;
@@ -363,6 +378,8 @@ async function loadList(dir = state.dir) {
       if (state.dir) return loadList(parentDir(state.dir));
     }
     setStatus('error', error.message || 'could not list files');
+  } finally {
+    hideBusy();
   }
 }
 
@@ -378,6 +395,12 @@ async function openFile(file) {
   setTitle(file.name);
   setStatus('loading');
 
+  // Clear the note that was open before the screen changes: the editor still
+  // holds it, and a previous note appearing under the new note's name is a lie
+  // for as long as the read takes.
+  editor.setText('');
+  showBusy(`Opening ${file.name}…`);
+
   try {
     const { text, rev } = await provider.read(file.path);
     const clean = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
@@ -389,6 +412,8 @@ async function openFile(file) {
     if (error instanceof AuthError) return showAuth();
     trackEvent('error-open');
     setStatus('error', error.message || 'could not open the file');
+  } finally {
+    hideBusy();
   }
 }
 
