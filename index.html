@@ -22,7 +22,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.25">
+<meta name="app-version" content="v0.26">
 </head>
 <body>
 
@@ -285,7 +285,7 @@
     <li><strong>Undo</strong> sits at the bottom right while a note is open
       (⌘Z / Ctrl+Z on a keyboard, shift for redo). One step per block edit.</li>
     <li><strong>Paste a picture</strong> into a note: it uploads to the
-      <code>assets</code> folder beside the note and links itself in.</li>
+      <code>_assets</code> folder beside the note and links itself in.</li>
     <li><strong>Tap a picture</strong> to see it full size (<em>View</em>) or
       delete it. Deleting a picture asks first, then removes both the file and
       the reference to it in the note; nothing else in the note changes.</li>
@@ -298,6 +298,10 @@
     <li>Tap the <strong>Recent</strong> heading to fold that list away. It is open
       to begin with.</li>
     <li>Only Markdown files are listed. Other files in the folder are left alone.</li>
+    <li>Anything whose name starts with <code>_</code> is hidden from the list and
+      from search — that is what keeps the <code>_assets</code> folder out of the
+      way. Taisce will not create a name starting with <code>_</code>, so nothing
+      can be hidden by accident.</li>
     <li><strong>Delete</strong> (bottom right of a note, the trash can) asks
       first, naming the file, and then moves it to the Dropbox trash — where it
       can be restored at dropbox.com until the trash expires. The pictures that
