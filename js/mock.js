@@ -1,5 +1,5 @@
 import { ConflictError } from './errors.js';
-import { baseName, normaliseDir, parentDir } from './paths.js';
+import { baseName, isHiddenName, isHiddenPath, normaliseDir, parentDir } from './paths.js';
 
 // A fake backend with the same contract as DropboxProvider, so the whole UI can
 // be worked on — and shown — without an account. `?mock=1` is the only way to
@@ -93,11 +93,12 @@ export function createMockProvider() {
       const data = read();
 
       const folders = data.folders
-        .filter((path) => parentDir(path) === at)
+        .filter((path) => parentDir(path) === at && !isHiddenName(baseName(path)))
         .map((path) => ({ name: baseName(path), path, type: 'folder' }));
 
       const files = Object.keys(data.files)
         .filter((path) => parentDir(path) === at && /\.md$/i.test(path))
+        .filter((path) => !isHiddenName(baseName(path)))
         .sort((a, b) => a.localeCompare(b))
         .map((path) => ({ name: baseName(path).replace(/\.md$/i, ''), path, type: 'file' }));
 
@@ -107,7 +108,7 @@ export function createMockProvider() {
     async index() {
       await wait();
       return Object.entries(read().files)
-        .filter(([path]) => /\.md$/i.test(path))
+        .filter(([path]) => /\.md$/i.test(path) && !isHiddenPath(path))
         .map(([path, entry]) => ({
           name: baseName(path).replace(/\.md$/i, ''),
           path,

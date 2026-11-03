@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { baseName, breadcrumbs, joinPath, normaliseDir, parentDir } from '../js/paths.js';
+import {
+  HIDDEN_PREFIX,
+  isHiddenName,
+  isHiddenPath, baseName, breadcrumbs, joinPath, normaliseDir, parentDir } from '../js/paths.js';
 
 test('normaliseDir is the canonical Dropbox shape: leading slash, no trailing slash', () => {
   assert.equal(normaliseDir(''), '');
@@ -37,4 +40,24 @@ test('breadcrumbs start at the root and reach the current folder', () => {
     { label: 'notes', path: '/notes' },
     { label: '2026', path: '/notes/2026' },
   ]);
+});
+
+test('a leading underscore means "not a note"', () => {
+  assert.equal(HIDDEN_PREFIX, '_');
+  assert.equal(isHiddenName('_assets'), true);
+  assert.equal(isHiddenName('_draft.md'), true);
+  assert.equal(isHiddenName('assets'), false);
+  assert.equal(isHiddenName('my_assets'), false);
+  assert.equal(isHiddenName(''), false);
+});
+
+test('a path is hidden when any part of it is', () => {
+  assert.equal(isHiddenPath('/notes/_assets/a.png'), true);
+  assert.equal(isHiddenPath('/_private/plan.md'), true);
+  assert.equal(isHiddenPath('/notes/_draft.md'), true);
+  assert.equal(isHiddenPath('/notes/_assets'), true, 'the folder itself');
+  assert.equal(isHiddenPath('/notes/plan.md'), false);
+  assert.equal(isHiddenPath('/notes/my_assets/a.png'), false);
+  assert.equal(isHiddenPath(''), false);
+  assert.equal(isHiddenPath('/'), false);
 });

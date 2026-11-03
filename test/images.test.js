@@ -35,13 +35,13 @@ test('a suffix keeps two pastes in the same second apart', () => {
   assert.match(first, /-a1b2\.png$/);
 });
 
-test('assets live beside the note, not at the root', () => {
-  assert.equal(assetDirFor('/notes/ideas.md'), '/notes/assets');
-  assert.equal(assetDirFor('/welcome.md'), '/assets');
+test('assets live beside the note, not at the root, in a folder kept out of the list', () => {
+  assert.equal(assetDirFor('/notes/ideas.md'), '/notes/_assets');
+  assert.equal(assetDirFor('/welcome.md'), '/_assets');
 });
 
 test('the link is relative so any Markdown editor can follow it', () => {
-  assert.equal(markdownImage('2026-10-31-120405.png'), '![](assets/2026-10-31-120405.png)');
+  assert.equal(markdownImage('2026-10-31-120405.png'), '![](_assets/2026-10-31-120405.png)');
 });
 
 test('relative image references resolve against the note, absolute URLs do not', () => {

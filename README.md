@@ -41,7 +41,7 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Undo, without a Save button.** The round buttons at the bottom right (or
   Cmd/Ctrl+Z) step back through block edits; how many steps are kept is a
   setting. Undo survives the autosave, because it writes like any other edit.
-- **Paste a picture** into a note: it is uploaded to an `assets` folder beside
+- **Paste a picture** into a note: it is uploaded to an `_assets` folder beside
   the note and linked in relatively, so the note still renders in any other
   Markdown editor. **Tap a picture** to view it full size or delete it — deleting
   removes the file and the reference to it, after asking.
@@ -154,7 +154,7 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
 - **Opening a note cannot phone home.** Remote images in a note are shown as
   links and never fetched, `style` attributes are stripped, and a
   Content-Security-Policy blocks anything that slips through. Only the note's
-  own `assets/` images are loaded — with your token, from Dropbox.
+  own `_assets/` images are loaded — with your token, from Dropbox.
 - The Dropbox refresh token lives in this browser's `localStorage`. That is a
   deliberate trade for having no backend: any script running on this origin
   could read it, which is why no third-party script is loaded (the analytics

@@ -38,3 +38,23 @@ export function breadcrumbs(path, rootLabel = 'Taisce') {
   }
   return crumbs;
 }
+
+/**
+ * A leading underscore means "not a note": the app keeps pasted pictures in
+ * `_assets` beside the note, and anything else the reader chooses to keep out of
+ * the way. Such names are never listed, never searched and never created from
+ * the app — Dropbox itself is the place to make one deliberately.
+ */
+export const HIDDEN_PREFIX = '_';
+
+/** True for a single name, e.g. `_assets` or `_draft.md`. */
+export function isHiddenName(name) {
+  return String(name || '').startsWith(HIDDEN_PREFIX);
+}
+
+/** True when any part of a path is hidden, e.g. `/notes/_assets/a.png`. */
+export function isHiddenPath(path) {
+  return String(path || '')
+    .split('/')
+    .some((part) => part !== '' && isHiddenName(part));
+}

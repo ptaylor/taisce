@@ -1,5 +1,6 @@
 import { accessToken, signOut, store } from './auth.js';
 import { AuthError, ConflictError, ScopeError } from './errors.js';
+import { isHiddenName, isHiddenPath } from './paths.js';
 
 const RPC_HOST = 'https://api.dropboxapi.com/2/';
 const CONTENT_HOST = 'https://content.dropboxapi.com/2/';
@@ -95,6 +96,7 @@ export class DropboxProvider {
     const entries = await this.listAll({ path: dir, recursive: false });
 
     return entries
+      .filter((entry) => !isHiddenName(entry.name))
       .filter((entry) => entry['.tag'] === 'folder' || (entry['.tag'] === 'file' && /\.md$/i.test(entry.name)))
       .map((entry) => ({
         name: entry['.tag'] === 'folder' ? entry.name : entry.name.replace(/\.md$/i, ''),
@@ -116,6 +118,7 @@ export class DropboxProvider {
     const entries = await this.listAll({ path: '', recursive: true });
 
     return entries
+      .filter((entry) => !isHiddenPath(entry.path_lower))
       .filter((entry) => entry['.tag'] === 'file' && /\.md$/i.test(entry.name))
       .map((entry) => ({
         name: entry.name.replace(/\.md$/i, ''),

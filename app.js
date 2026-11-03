@@ -5,7 +5,7 @@ import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.
 import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
 import { AuthError, ConflictError, ScopeError } from './js/errors.js';
-import { breadcrumbs, joinPath, normaliseDir, parentDir } from './js/paths.js';
+import { breadcrumbs, isHiddenName, joinPath, normaliseDir, parentDir } from './js/paths.js';
 import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
 import { undoLimit } from './js/history.js';
 import {
@@ -474,6 +474,13 @@ async function submitNewFile(event) {
   }
   if (/[/\\]/.test(name)) {
     error.textContent = 'Names cannot contain / or \\ — open a folder to nest inside it.';
+    error.hidden = false;
+    return;
+  }
+  // A leading underscore means "keep this out of the list", so the app cannot be
+  // the thing that makes one: it would create something it then refuses to show.
+  if (isHiddenName(name)) {
+    error.textContent = 'Names cannot start with _ — those are hidden from the list.';
     error.hidden = false;
     return;
   }

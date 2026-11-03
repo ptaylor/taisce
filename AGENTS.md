@@ -70,7 +70,7 @@ served.
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
 | `js/recents.js` | Recent ordering, filename search, the recent-count preference. Pure. |
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
-| `js/images.js` | Asset naming, the `assets/` location, image-link resolution. Pure. |
+| `js/images.js` | Asset naming, the `_assets/` location, image-link resolution. Pure. |
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |
 | `js/analytics.js` | The only caller of GoatCounter: guarded `trackView`/`trackEvent`, and the demo switch. |
 | `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
@@ -419,6 +419,17 @@ Rules:
     commit, in one line, so the next person knows it was a decision.
   Removing a feature retires its events by the same rule. The vocabulary is
   documented under **GoatCounter** below and must match the code exactly.
+- **A leading underscore means "not a note".** Pasted pictures go in `_assets`
+  beside the note, and anything the reader wants out of the way can be hidden
+  the same way. Such names are never listed, never counted in the folder
+  summary, never indexed for recents or search, and the app refuses to create
+  one — it must not be able to make something it then hides. The rule is one
+  place, `isHiddenName`/`isHiddenPath` in `js/paths.js`, applied in both
+  providers: hiding by path segment, not just by leaf, so a file inside
+  `_private/` is hidden too. Notes written before the rename still point at
+  `assets/`; those references keep working (resolution follows the reference,
+  not the folder name) and that folder stays visible until it is renamed in
+  Dropbox.
 - **A wait never looks like the previous screen.** Anything that awaits the
   network — opening a folder, opening a note, uploading a pasted picture —
   clears what it is about to replace *before* awaiting, and covers the screen
@@ -436,7 +447,7 @@ Rules:
   keeps the initial focus so a stray Enter cancels. Nothing in the app may
   delete, overwrite or revoke on a single tap. Deleting a note moves it to the
   Dropbox trash — recoverable — and takes the pictures that note links to with
-  it, and only those: `assets/` is shared by every note in a folder, so the
+  it, and only those: `_assets/` is shared by every note in a folder, so the
   attribution is per note (`attachedImages` in `js/images.js`), never the folder.
   A picture belongs to one note because a pasted one is named with a timestamp
   and a random suffix; delete by that attribution rather than by guessing.

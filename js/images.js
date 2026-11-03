@@ -1,8 +1,9 @@
 import { joinPath, normaliseDir, parentDir } from './paths.js';
 
-// Pasted images live beside the note, in an `assets` folder, and the note links
+// Pasted images live beside the note, in an `_assets` folder, and the note links
 // them relatively so the same file works in any Markdown editor with the
-// Dropbox folder checked out.
+// Dropbox folder checked out. The underscore keeps the folder out of the file
+// list: it belongs to the notes, not to the reader.
 
 const EXTENSIONS = {
   'image/png': 'png',
@@ -29,11 +30,11 @@ export function imageFileName(type, now = Date.now(), suffix = '') {
 
 /** The folder that holds images for a given note. */
 export function assetDirFor(filePath) {
-  return joinPath(parentDir(filePath), 'assets');
+  return joinPath(parentDir(filePath), '_assets');
 }
 
 export function markdownImage(name) {
-  return `![](assets/${name})`;
+  return `![](_assets/${name})`;
 }
 
 /**
@@ -99,7 +100,7 @@ export function removeImageRef(source, ref) {
  * The pictures a note carries, as Dropbox paths.
  *
  * "Attached" means written in this note as a relative reference, which is the
- * only kind the app itself creates — a pasted picture lands in `assets/` with a
+ * only kind the app itself creates — a pasted picture lands in `_assets/` with a
  * timestamped name and is linked relatively. Remote images are not attached
  * (they are not in Dropbox), and neither is anything outside the note's folder.
  *
