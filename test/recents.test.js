@@ -1,7 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { folderOf, recentCount, recentFiles, searchFiles, RECENT_DEFAULT } from '../js/recents.js';
+import {
+  folderOf,
+  recentCount,
+  recentFiles,
+  recentsOpen,
+  searchFiles,
+  RECENT_DEFAULT,
+} from '../js/recents.js';
 
 const FILES = [
   { name: 'shopping', path: '/shopping.md', modified: 1000 },
@@ -27,6 +34,13 @@ test('files without a modification time sort last but keep a stable order', () =
     recentFiles(files, 3).map((file) => file.name),
     ['new', 'a', 'b'],
   );
+});
+
+test('the recents list stays open until it is explicitly collapsed', () => {
+  assert.equal(recentsOpen(null), true);
+  assert.equal(recentsOpen('1'), true);
+  assert.equal(recentsOpen('0'), false);
+  assert.equal(recentsOpen('hand-edited'), true);
 });
 
 test('search matches the name only, case-insensitively, never the folder', () => {

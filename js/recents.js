@@ -30,6 +30,14 @@ export function recentCount(raw) {
   return Math.min(RECENT_MAX, Math.max(RECENT_MIN, value));
 }
 
+/**
+ * The Recent list is open unless it was explicitly collapsed. A first visit
+ * shows it, and a hand-edited or older value cannot hide it for good.
+ */
+export function recentsOpen(raw) {
+  return raw !== '0';
+}
+
 /** The folder a result lives in, for the second line of a search hit. */
 export function folderOf(path) {
   const value = String(path || '');

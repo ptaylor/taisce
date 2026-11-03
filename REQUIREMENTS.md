@@ -21,7 +21,7 @@ Creation of a new file or direcrtory should be easy (eg a + ) .
 
 It must be possible to navigate up and down through the hierarchy. (P2)
 
-On opening the app the most recent files modifed are shown (configurable in size) (P3)
+On opening the app the most recent files modifed are shown (configurable in size) (P3) The list can be folded away and that choice is remembered.
 
 A search functaion is provided to search based on the file name (in any directory) (P3)
 

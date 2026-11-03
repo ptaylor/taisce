@@ -68,7 +68,7 @@ served.
 | `js/dropbox.js` | The Dropbox API client: list (folders + files), read, write, create, create-folder, revoke. |
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
-| `js/recents.js` | Recent ordering, filename search, the recent-count preference. Pure. |
+| `js/recents.js` | Recent ordering, filename search, the recent-count and open/closed preferences. Pure. |
 | `js/history.js` | Undo/redo as source-range operations, with a configurable depth. Pure. |
 | `js/images.js` | Asset naming, the `_assets/` location, image-link resolution. Pure. |
 | `js/templates.js` | The slash-menu templates and the rules for when a slash opens it. Pure. |

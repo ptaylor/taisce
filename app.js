@@ -6,7 +6,7 @@ import { createSaveEngine } from './js/save.js';
 import { createEditor } from './js/editor.js';
 import { AuthError, ConflictError, ScopeError } from './js/errors.js';
 import { breadcrumbs, isHiddenName, joinPath, normaliseDir, parentDir } from './js/paths.js';
-import { folderOf, recentCount, recentFiles, searchFiles } from './js/recents.js';
+import { folderOf, recentCount, recentFiles, recentsOpen, searchFiles } from './js/recents.js';
 import { undoLimit } from './js/history.js';
 import {
   assetDirFor,
@@ -31,6 +31,7 @@ import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js
 const MOCK = new URLSearchParams(location.search).has('mock');
 const provider = MOCK ? createMockProvider() : new DropboxProvider(APP_CONFIG.appKey);
 const RECENT_KEY = 'taisce.recentCount';
+const RECENTS_OPEN_KEY = 'taisce.recentsOpen';
 const UNDO_KEY = 'taisce.undoLimit';
 const imageUrls = new Map();
 
@@ -42,7 +43,7 @@ const state = {
   query: '',
   countedQuery: '',
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
-  recentsOpen: true,
+  recentsOpen: recentsOpen(localStorage.getItem(RECENTS_OPEN_KEY)),
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
 };
 
@@ -770,6 +771,7 @@ async function boot() {
   });
   $('#recents-toggle').addEventListener('click', () => {
     state.recentsOpen = !state.recentsOpen;
+    localStorage.setItem(RECENTS_OPEN_KEY, state.recentsOpen ? '1' : '0');
     applyRecentsOpen();
     trackEvent('recent-toggle');
   });

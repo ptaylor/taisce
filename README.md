@@ -47,9 +47,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   Markdown editor. **Tap a picture** to view it full size or delete it — deleting
   removes the file and the reference to it, after asking.
 - **Finding things.** The home screen lists the files you changed most
-  recently (Settings controls how many; tap **Recent** to fold the list away),
-  and the search box matches file names across every folder, showing where each
-  match lives.
+  recently (Settings controls how many; tap **Recent** to fold the list away,
+  and it stays folded next time), and the search box matches file names across
+  every folder, showing where each match lives.
 - **Connect once.** The app only ever sees its own folder in your Dropbox
   account (`Apps/Taisce`), never the rest of it.
 - **Disconnect** lives in **Settings**, under the account it belongs to. It asks
