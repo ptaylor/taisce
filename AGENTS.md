@@ -16,14 +16,14 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 ## Status
 
-**All four phases implemented, not yet published.** Sign-in (PKCE), folders with
+**All four phases implemented and published.** Sign-in (PKCE), folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, interactive task lists, new files and folders, recent
 files, filename search, undo/redo with a configurable depth, pasted images,
 background `.bak` backups when a note opens, the `docs/` guide, the icon set and
-`publish.sh` all exist and are tested. The site
-has not been published to Pages — the first `./publish.sh` is a decision, not a
-step to take casually.
+`publish.sh` all exist and are tested. The site is live at
+<https://ptaylor.github.io/taisce/>; `./publish.sh` is what puts a new version
+there.
 
 Known gaps:
 
