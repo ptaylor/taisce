@@ -26,6 +26,16 @@ export function joinPath(dir, name) {
   return parent ? `${parent}/${child}` : `/${child}`;
 }
 
+/**
+ * `path` renamed to `name` in the same folder. As with a new file, the reader
+ * may type the `.md` extension or leave it off; a rename never moves a note to
+ * another folder.
+ */
+export function renamedPath(path, name) {
+  const value = String(name || '').trim();
+  return joinPath(parentDir(path), /\.md$/i.test(value) ? value : `${value}.md`);
+}
+
 export function breadcrumbs(path, rootLabel = 'Taisce') {
   const value = normaliseDir(path);
   const parts = value ? value.slice(1).split('/') : [];

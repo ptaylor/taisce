@@ -909,7 +909,7 @@ main {
   gap: 0.4rem;
 }
 
-/* Kept away from the undo and redo taps: the four buttons share a row, and a
+/* Kept away from the undo and redo taps: the buttons share a row, and a
    mis-tap on this one cannot be undone. */
 .tool-btn.danger {
   margin-right: 0.55rem;

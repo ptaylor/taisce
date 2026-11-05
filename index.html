@@ -25,7 +25,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.29">
+<meta name="app-version" content="v0.30">
 </head>
 <body>
 
@@ -132,6 +132,14 @@
                 d="M8.8 10.5 15.2 6.8M8.8 13.5 15.2 17.2"/>
         </svg>
       </button>
+      <button id="rename" class="tool-btn" type="button" aria-label="Rename this file">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" d="M4.2 17.6V20h2.4L18 8.6a1.7 1.7 0 0 0 0-2.4l-.2-.2a1.7 1.7 0 0 0-2.4 0L4.2 17.6Z"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                d="M14.1 7.3l2.6 2.6M4.2 22h15.6"/>
+        </svg>
+      </button>
       <button id="undo" class="tool-btn" type="button" aria-label="Undo" disabled>&#8630;</button>
       <button id="redo" class="tool-btn" type="button" aria-label="Redo" disabled>&#8631;</button>
     </div>
@@ -179,6 +187,24 @@
     <menu>
       <button id="new-cancel" class="link" type="button">Cancel</button>
       <button id="new-create" class="primary" type="submit">Create</button>
+    </menu>
+  </form>
+</dialog>
+
+<dialog id="rename-file" class="sheet" aria-labelledby="rename-title">
+  <form id="rename-form" novalidate>
+    <h2 id="rename-title">Rename</h2>
+    <p id="rename-where" class="where"></p>
+    <label class="field">
+      <span>New name</span>
+      <input id="rename-name" type="text" inputmode="text" autocomplete="off"
+             autocapitalize="off" spellcheck="false" placeholder="notes" maxlength="120">
+    </label>
+    <p id="rename-error" class="err" hidden></p>
+    <p id="rename-status" class="where" role="status" aria-live="polite" hidden></p>
+    <menu>
+      <button id="rename-cancel" class="link" type="button">Cancel</button>
+      <button id="rename-save" class="primary" type="submit">Rename</button>
     </menu>
   </form>
 </dialog>
@@ -329,6 +355,11 @@
       can be restored at dropbox.com until the trash expires. The pictures that
       note links to and any PDF copy made for sharing go with it; pictures
       belonging to other notes do not.</li>
+    <li><strong>Rename</strong> (the pencil at the bottom right of a note)
+      changes the file's name without moving it out of its folder. A PDF copy
+      made for sharing moves with it. If the note has a shared link, Taisce says
+      so first: the link keeps working after the rename, so renaming is not a
+      way to stop sharing.</li>
     <li><strong>Share</strong> (bottom right of a note) creates a read-only
       Dropbox link using the format chosen in Settings: a PDF copy beside the
       note, or the Markdown file itself. In PDF mode a dot on the Share button

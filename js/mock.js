@@ -51,7 +51,7 @@ function blobToDataUrl(blob) {
 }
 
 function seed() {
-  const data = { folders: [...SAMPLE.folders], files: {}, images: {}, pdfs: {} };
+  const data = { folders: [...SAMPLE.folders], files: {}, images: {}, pdfs: {}, shared: {} };
   const now = Date.now();
   Object.entries(SAMPLE.files).forEach(([path, text], index) => {
     // Staggered so the demo has a believable "recently modified" order.
@@ -69,6 +69,7 @@ function read() {
     if (!data || !data.files || !data.folders) return seed();
     if (!data.images) data.images = {};
     if (!data.pdfs) data.pdfs = {};
+    if (!data.shared) data.shared = {};
     return data;
   } catch {
     return seed();
@@ -195,10 +196,54 @@ export function createMockProvider() {
 
     // The demo has no Dropbox to ask, so the link is a plausible stand-in that
     // behaves like one: stable for a file, and viewable rather than downloading.
+    // Remembering that a path was shared is what lets a rename warn about it.
     async shareLink(path) {
       await wait();
+      const data = read();
+      data.shared[path] = true;
+      write(data);
       const name = path.split('/').pop();
       return `https://www.dropbox.com/scl/fi/taisce-demo/${name}?rlkey=demo&dl=0`;
+    },
+
+    async hasSharedLink(path) {
+      await wait();
+      return Boolean(read().shared[path]);
+    },
+
+    // The demo's file store is flat, so a move is a re-key. Dropbox keeps a
+    // shared link attached to the file, and so does the demo.
+    async rename(from, to) {
+      await wait();
+      const data = read();
+      if (from === to) throw new ConflictError('conflict');
+      const occupied =
+        data.files[to] ||
+        data.images[to] ||
+        data.pdfs[to] ||
+        data.folders.includes(to);
+      if (occupied) throw new ConflictError('conflict');
+
+      let rev = 'r1';
+      if (data.files[from]) {
+        rev = data.files[from].rev;
+        data.files[to] = data.files[from];
+        delete data.files[from];
+      } else if (data.images[from]) {
+        data.images[to] = data.images[from];
+        delete data.images[from];
+      } else if (data.pdfs[from]) {
+        data.pdfs[to] = data.pdfs[from];
+        delete data.pdfs[from];
+      } else {
+        throw new Error('path/not_found');
+      }
+      if (data.shared[from]) {
+        data.shared[to] = data.shared[from];
+        delete data.shared[from];
+      }
+      write(data);
+      return { path: to, rev };
     },
 
     // No trash in the demo: the file is gone, and Reset demo data brings the
@@ -211,6 +256,7 @@ export function createMockProvider() {
       else if (data.images[path]) delete data.images[path];
       else if (data.pdfs && data.pdfs[path]) delete data.pdfs[path];
       else throw new Error('path/not_found');
+      if (data.shared) delete data.shared[path];
       write(data);
       return { path };
     },

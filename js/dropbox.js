@@ -212,6 +212,23 @@ export class DropboxProvider {
   }
 
   /**
+   * Move a file to a new name, never to a different folder and never with a
+   * generated suffix: a rename the reader typed must either take that name or
+   * fail. Dropbox keeps shared links attached to the file through a move.
+   * @param {string} from
+   * @param {string} to
+   * @returns {Promise<{path: string, rev?: string}>}
+   */
+  async rename(from, to) {
+    const result = await this.rpc('files/move_v2', {
+      from_path: from,
+      to_path: to,
+      autorename: false,
+    });
+    return { path: result.metadata.path_lower, rev: result.metadata.rev };
+  }
+
+  /**
    * Deletes to the Dropbox trash, not into nothing: `files/delete_v2` needs
    * only `files.content.write`, which the app already asks for, and the file
    * stays restorable at dropbox.com until the trash expires.
@@ -251,6 +268,20 @@ export class DropboxProvider {
     const { links = [] } = await this.rpc('sharing/list_shared_links', { path, direct_only: true });
     const match = links.find((link) => (link.path_lower || '').toLowerCase() === path.toLowerCase());
     return match ? match.url : null;
+  }
+
+  /**
+   * Whether Dropbox already has a shared link for this file. Renaming a note
+   * does not revoke its link, so this is the question a rename has to ask
+   * before it moves something the reader may have shared.
+   */
+  async hasSharedLink(path) {
+    try {
+      return Boolean(await this.findSharedLink(path));
+    } catch (error) {
+      if (/not[_-]?found/i.test(error.message || '')) return false;
+      throw error;
+    }
   }
 
   /**
