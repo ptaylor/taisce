@@ -51,7 +51,7 @@ function blobToDataUrl(blob) {
 }
 
 function seed() {
-  const data = { folders: [...SAMPLE.folders], files: {}, images: {} };
+  const data = { folders: [...SAMPLE.folders], files: {}, images: {}, pdfs: {} };
   const now = Date.now();
   Object.entries(SAMPLE.files).forEach(([path, text], index) => {
     // Staggered so the demo has a believable "recently modified" order.
@@ -68,6 +68,7 @@ function read() {
     const data = JSON.parse(raw);
     if (!data || !data.files || !data.folders) return seed();
     if (!data.images) data.images = {};
+    if (!data.pdfs) data.pdfs = {};
     return data;
   } catch {
     return seed();
@@ -120,6 +121,7 @@ export function createMockProvider() {
       await wait();
       const data = read();
       if (data.folders.includes(path)) return { type: 'folder' };
+      if (data.pdfs && data.pdfs[path]) return { type: 'file' };
       const entry = data.files[path];
       if (!entry) throw new Error('path/not_found');
       return { type: 'file', rev: entry.rev };
@@ -162,9 +164,19 @@ export function createMockProvider() {
       return { path, rev: 'img1' };
     },
 
+    async writePdf(path, bytes) {
+      await wait();
+      const data = read();
+      if (data.folders.includes(path)) throw new ConflictError('conflict');
+      data.pdfs[path] = await blobToDataUrl(new Blob([bytes], { type: 'application/pdf' }));
+      write(data);
+      return { path };
+    },
+
     async readBlob(path) {
       await wait();
-      const dataUrl = read().images[path];
+      const data = read();
+      const dataUrl = data.images[path] || (data.pdfs && data.pdfs[path]);
       if (!dataUrl) throw new Error('not_found');
       return (await fetch(dataUrl)).blob();
     },
@@ -197,6 +209,7 @@ export function createMockProvider() {
       const data = read();
       if (data.files[path]) delete data.files[path];
       else if (data.images[path]) delete data.images[path];
+      else if (data.pdfs && data.pdfs[path]) delete data.pdfs[path];
       else throw new Error('path/not_found');
       write(data);
       return { path };

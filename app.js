@@ -26,7 +26,20 @@ import {
   showBusy,
   toast,
 } from './js/ui.js';
-import { canShare, sharePayload, viewableLink } from './js/share.js';
+import {
+  canShare,
+  forgetPdfShare,
+  parseShareRecords,
+  pdfNeedsPublish,
+  recordPdfShare,
+  SHARE_FORMAT_KEY,
+  SHARE_RECORDS_KEY,
+  shareFormatChoice,
+  shareFingerprint,
+  sharePayload,
+  viewableLink,
+} from './js/share.js';
+import { isTaiscePdf, markdownToPdf, pdfPathFor } from './js/pdf.js';
 import { configure, releaseSlug, trackEvent, trackView } from './js/analytics.js';
 import { effectiveTheme, themeChoice, THEME_KEY } from './js/theme.js';
 
@@ -54,6 +67,8 @@ const state = {
   recentsOpen: recentsOpen(localStorage.getItem(RECENTS_OPEN_KEY)),
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
   theme: themeChoice(localStorage.getItem(THEME_KEY)),
+  shareFormat: shareFormatChoice(localStorage.getItem(SHARE_FORMAT_KEY)),
+  sharedPdfs: parseShareRecords(localStorage.getItem(SHARE_RECORDS_KEY)),
 };
 
 const darkScheme = matchMedia('(prefers-color-scheme: dark)');
@@ -106,9 +121,59 @@ function updateHistoryButtons({ canUndo, canRedo }) {
   $('#redo').disabled = !canRedo;
 }
 
+function storedShareRecords() {
+  try {
+    return parseShareRecords(localStorage.getItem(SHARE_RECORDS_KEY));
+  } catch {
+    return {};
+  }
+}
+
+// Records are shared by every tab on this origin. A tab that has been open for
+// a while holds a stale copy, so merge what is stored now before writing;
+// otherwise one tab's share wipes another tab's recent shares. `replace` is for
+// the two operations that remove records, which a merge would undo.
+function saveShareRecords({ replace = false } = {}) {
+  try {
+    if (!replace) {
+      state.sharedPdfs = { ...storedShareRecords(), ...state.sharedPdfs };
+    }
+    localStorage.setItem(SHARE_RECORDS_KEY, JSON.stringify(state.sharedPdfs));
+  } catch {
+    // The dot is a convenience; losing it must not fail a share.
+  }
+}
+
+function setShareButtonStale(stale) {
+  const button = $('#share');
+  if (!button) return;
+  button.classList.toggle('needs-publish', stale);
+  button.setAttribute(
+    'aria-label',
+    stale ? 'Share this file — the PDF needs republishing' : 'Share this file',
+  );
+  button.title = stale ? 'The shared PDF is out of date — share again to republish it' : '';
+}
+
+/**
+ * Mark the Share button when the open note has a PDF behind a shared link that
+ * is older than the text on screen. The dot is the cue; the label and title say
+ * what it means where it cannot be seen.
+ */
+function updateShareButton(text = editor.text()) {
+  const stale =
+    state.shareFormat === 'pdf' &&
+    Boolean(state.file) &&
+    pdfNeedsPublish(state.sharedPdfs, state.file.path, text);
+  setShareButtonStale(stale);
+}
+
 const editor = createEditor({
   container: $('#blocks'),
-  onChange: (text) => engine.setText(text),
+  onChange: (text) => {
+    engine.setText(text);
+    updateShareButton(text);
+  },
   onStatus: setStatus,
   onHistory: updateHistoryButtons,
   undoLimit: state.undoMax,
@@ -173,6 +238,7 @@ const engine = createSaveEngine({
   },
   onRemote: (text, info) => {
     editor.setText(text);
+    updateShareButton(text);
     // A conflict is the one save failure the reader is told about, so it is the
     // one worth counting: a rise means two devices are racing.
     trackEvent(info.dropped ? 'conflict-dropped' : 'conflict-merged');
@@ -475,6 +541,7 @@ async function openFile(file, { push = true } = {}) {
   // holds it, and a previous note appearing under the new note's name is a lie
   // for as long as the read takes.
   editor.setText('');
+  setShareButtonStale(false);
   showBusy(`Opening ${file.name}…`);
 
   try {
@@ -483,6 +550,7 @@ async function openFile(file, { push = true } = {}) {
     const clean = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     editor.setText(clean);
     engine.open({ path: file.path, text: clean, rev });
+    updateShareButton(clean);
     trackEvent('file-open');
     setStatus('loaded');
     // Housekeeping after the note is on screen, never part of the open: the
@@ -514,6 +582,7 @@ async function refresh() {
         toast('Reloaded from Dropbox');
       }
       engine.open({ path: state.file.path, text: clean, rev });
+      updateShareButton(clean);
       setStatus('loaded');
     } catch (error) {
       if (id !== navId) return;
@@ -640,40 +709,206 @@ async function submitNewFile(event) {
 // again would only cost a round trip.
 const sharedLinks = new Map();
 
+// The link never appears in the sheet — it is copied or handed to the share
+// sheet — so it lives here between the request finishing and the buttons being
+// pressed.
+let shareUrl = '';
+
+// Only the newest share may touch the sheet: closing it and starting another
+// before the first finishes must not let the old one write its link over the
+// new one. `sharePending` lets a delete wait for a share it has cancelled.
+let shareRun = 0;
+let sharePending = Promise.resolve();
+let deleting = false;
+
+// The sheet's status line doubles as the progress sign: null hides it, a label
+// shows the spinner beside the label. "Please wait" is never the only message,
+// because it says nothing about what is being waited for.
+function setShareBusy(label) {
+  const busy = $('#share-busy');
+  $('#share-busy-label').textContent = label || '';
+  busy.hidden = !label;
+}
+
+// rAF alone runs before the paint it was scheduled for; the second frame is
+// what guarantees the spinner was actually drawn before the synchronous PDF
+// layout takes the main thread. A hidden document pauses rAF altogether, so a
+// timer settles the wait rather than leaving the share stuck until it is shown.
+function nextPaint() {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    requestAnimationFrame(() => requestAnimationFrame(done));
+    setTimeout(done, 120);
+  });
+}
+
+// The clipboard API needs permission; a hidden textarea and execCommand are the
+// fallback, so a refused clipboard does not leave a link the reader cannot get.
+async function copyText(text) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to the older path.
+  }
+  const area = document.createElement('textarea');
+  area.className = 'copy-fallback';
+  area.value = text;
+  area.setAttribute('readonly', '');
+  document.body.append(area);
+  area.select();
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+  area.remove();
+  return copied;
+}
+
 function resetShare() {
-  $('#share-url').value = '';
+  setShareBusy(null);
+  shareUrl = '';
+  $('#share-title').textContent = 'Share';
   $('#share-note').textContent = '';
   $('#share-copy').disabled = true;
+  $('#share-copy').hidden = true;
   $('#share-copy').textContent = 'Copy link';
   $('#share-send').hidden = true;
   $('#share-reconnect').hidden = true;
 }
 
-async function openShare() {
+function openShare() {
   const file = state.file;
-  if (!file) return;
+  if (!file || deleting) return Promise.resolve();
+  const run = ++shareRun;
+  const task = shareNote(file, run);
+  sharePending = task.catch(() => {});
+  return task;
+}
+
+async function shareNote(file, run) {
+  const format = state.shareFormat;
+  const republishing =
+    format === 'pdf' && pdfNeedsPublish(state.sharedPdfs, file.path, editor.text());
+  // A PDF recorded on this device, or any link already fetched this session,
+  // means the same link will come back — so the sheet says so rather than
+  // implying a brand-new share.
+  const resharing =
+    format === 'pdf'
+      ? Boolean(state.sharedPdfs[file.path]) || sharedLinks.has(pdfPathFor(file.path))
+      : sharedLinks.has(file.path);
 
   resetShare();
   $('#share-where').textContent = file.name || 'This file';
-  $('#share-note').textContent = 'Asking Dropbox for the link…';
+  if (resharing) {
+    $('#share-title').textContent = 'Re-share';
+    $('#share-note').textContent = republishing
+      ? 'This note has changed since the PDF was last shared. Sharing again ' +
+        'replaces the PDF behind the same link.'
+      : format === 'pdf'
+        ? 'This note has already been shared. Sharing again replaces the PDF ' +
+          'behind the same link.'
+        : 'This file has already been shared. Sharing again keeps the same link.';
+  }
+  setShareBusy(
+    format === 'markdown'
+      ? 'Asking Dropbox for the link…'
+      : republishing
+        ? 'Republishing the PDF…'
+        : resharing
+          ? 'Refreshing the PDF…'
+          : 'Saving the note…',
+  );
   const dialog = $('#share-sheet');
   if (!dialog.open) dialog.showModal();
 
   try {
-    // The link points at the file as Dropbox holds it, so anything typed but
-    // not yet uploaded has to go first — otherwise the recipient reads a note
-    // that is already out of date.
+    // The shared copy is made from the note as Dropbox holds it, so anything
+    // typed but not yet uploaded has to go first — otherwise the recipient
+    // reads a note that is already out of date.
     await engine.flush();
-    const known = sharedLinks.get(file.path);
-    const url = known || viewableLink(await provider.shareLink(file.path));
-    sharedLinks.set(file.path, url);
+    if (run !== shareRun) return;
 
-    $('#share-url').value = url;
+    // A failed open leaves the note's name on screen but no text in the engine.
+    // Sharing then would publish an empty PDF over a good one.
+    if (engine.path() !== file.path) {
+      setShareBusy(null);
+      $('#share-note').textContent =
+        'This note could not be opened, so there is nothing to share.';
+      return;
+    }
+
+    let sharePath = file.path;
+    const text = engine.text();
+
+    if (format === 'pdf') {
+      // Share a PDF rather than the Markdown source: Dropbox previews a PDF in
+      // the browser, while a shared .md opens as raw text. The PDF sits beside
+      // the note and is overwritten each time, so Dropbox keeps the same shared
+      // link pointing at it.
+      setShareBusy(
+        republishing
+          ? 'Republishing the PDF…'
+          : resharing
+            ? 'Refreshing the PDF…'
+            : 'Making the PDF…',
+      );
+      await nextPaint();
+      if (run !== shareRun) return;
+      sharePath = pdfPathFor(file.path);
+      const bytes = markdownToPdf(text, { title: file.name || 'Untitled' });
+      setShareBusy('Uploading the PDF…');
+      await nextPaint();
+      if (run !== shareRun) return;
+      await provider.writePdf(sharePath, bytes);
+    }
+
+    setShareBusy('Asking Dropbox for the link…');
+    const known = sharedLinks.get(sharePath);
+    const url = known || viewableLink(await provider.shareLink(sharePath));
+    if (run !== shareRun) return;
+    sharedLinks.set(sharePath, url);
+
+    if (format === 'pdf') {
+      // Only now is the PDF actually behind a link. Record the text that was
+      // published, so the Share button can say when it has fallen behind.
+      state.sharedPdfs = recordPdfShare(state.sharedPdfs, file.path, shareFingerprint(text));
+      saveShareRecords();
+      // The reader may have moved to another note while the upload ran; that
+      // note's button is the one on screen now, so recompute from its text.
+      if (state.file?.path === file.path) updateShareButton();
+    }
+
+    setShareBusy(null);
+    shareUrl = url;
     $('#share-note').textContent =
-      'Anyone with this link can read this file until you stop sharing it in Dropbox.';
+      format === 'markdown'
+        ? resharing
+          ? 'Shared again. The link is unchanged, and the note behind it is ' +
+            'always current.'
+          : 'Anyone with this link can read this file until you stop sharing it in Dropbox.'
+        : republishing
+          ? 'Re-shared. The updated PDF is behind the same link, so anyone who ' +
+            'already has it sees the new version.'
+          : resharing
+            ? 'Re-shared. The PDF behind the same link has been refreshed.'
+            : 'Anyone with this link can read a PDF copy of this note. Sharing again ' +
+              'updates the PDF behind the same link.';
     $('#share-copy').disabled = false;
+    $('#share-copy').hidden = false;
     $('#share-send').hidden = !canShare();
   } catch (error) {
+    if (run !== shareRun) return;
+    setShareBusy(null);
     if (error instanceof AuthError) {
       dialog.close();
       return showAuth();
@@ -710,50 +945,98 @@ async function deleteFile() {
     title: `Delete “${file.name}”?`,
     body:
       `It moves to the Dropbox trash, where you can restore it at dropbox.com ` +
-      `until the trash expires. ${extra} Taisce cannot undo this.`,
+      `until the trash expires. ${extra} Any PDF copy Taisce made for sharing ` +
+      `goes too. Taisce cannot undo this.`,
     ok: 'Delete',
     danger: true,
   });
   if (!ok) return;
 
-  // Upload anything pending first, so a refused delete leaves the note saved
-  // and a queued save cannot land on a path that no longer exists.
-  await engine.flush();
-  engine.close();
-  setStatus('deleting');
-
+  deleting = true;
   try {
-    await provider.remove(file.path);
+    // Upload anything pending first, so a refused delete leaves the note saved
+    // and a queued save cannot land on a path that no longer exists.
+    await engine.flush();
+    engine.close();
+
+    // A share already running must finish before its PDF is deleted, or its
+    // upload can land afterwards and leave the orphan this cleanup exists to
+    // prevent. Bumping the run stops it touching the sheet or writing records.
+    shareRun += 1;
+    await sharePending;
+
+    setStatus('deleting');
+
+    try {
+      await provider.remove(file.path);
+    } catch (error) {
+      if (error instanceof AuthError) return showAuth();
+      trackEvent('error-delete');
+      toast(error.message || 'could not delete the file');
+      await openFile(file, { push: false }); // the note is still there: put it back on screen
+      return;
+    }
+
+    trackEvent('file-delete');
+    const failedPictures = await deletePictures(pictures);
+    const pdfRemoved = await deleteSharePdf(file.path);
+
+    sharedLinks.delete(file.path);
+    sharedLinks.delete(pdfPathFor(file.path));
+    state.sharedPdfs = forgetPdfShare(
+      { ...storedShareRecords(), ...state.sharedPdfs },
+      file.path,
+    );
+    saveShareRecords({ replace: true });
+    setShareButtonStale(false);
+    state.index = null; // the recent list and search both lose a row
+    const dir = state.dir;
+    state.file = null;
+    editor.setText('');
+    if (depthOf(history.state) > 0) {
+      // The listing is the entry underneath the note. Popping to it is what the
+      // reader expects, and it does not leave a duplicate step behind. Mark the
+      // note's entry first so a Forward cannot reopen a file that is gone.
+      history.replaceState({ ...history.state, deleted: true }, '');
+      history.back();
+    } else {
+      await loadList(dir);
+    }
+    const leftovers = [];
+    if (failedPictures) {
+      leftovers.push(`${failedPictures} picture${failedPictures === 1 ? '' : 's'}`);
+    }
+    if (!pdfRemoved) leftovers.push('the shared PDF');
+    toast(
+      leftovers.length
+        ? `Deleted “${file.name}” — ${leftovers.join(' and ')} could not be deleted`
+        : `Deleted “${file.name}”`,
+    );
+  } finally {
+    deleting = false;
+  }
+}
+
+// The PDF exists only for sharing the note; without the note it is an orphan
+// with a public link pointing into it. No PDF at that path is the ordinary
+// case, not a failure — a note that was never shared has none. Look before
+// deleting, as the backup writer does: `files/delete_v2` on a folder takes
+// everything inside it, and a folder named `note.pdf` is not our PDF. Read the
+// Producer entry too, so a PDF the reader exported under that name is left
+// alone.
+async function deleteSharePdf(notePath) {
+  const pdfPath = pdfPathFor(notePath);
+  try {
+    const existing = await provider.metadata(pdfPath);
+    if (existing.type !== 'file') return true;
+    const blob = await provider.readBlob(pdfPath);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (!isTaiscePdf(bytes)) return true;
+    await provider.remove(pdfPath);
+    return true;
   } catch (error) {
-    if (error instanceof AuthError) return showAuth();
-    trackEvent('error-delete');
-    toast(error.message || 'could not delete the file');
-    await openFile(file, { push: false }); // the note is still there: put it back on screen
-    return;
+    return /not[_-]?found/i.test(error.message || '');
   }
-
-  trackEvent('file-delete');
-  const failedPictures = await deletePictures(pictures);
-
-  sharedLinks.delete(file.path);
-  state.index = null; // the recent list and search both lose a row
-  const dir = state.dir;
-  state.file = null;
-  editor.setText('');
-  if (depthOf(history.state) > 0) {
-    // The listing is the entry underneath the note. Popping to it is what the
-    // reader expects, and it does not leave a duplicate step behind. Mark the
-    // note's entry first so a Forward cannot reopen a file that is gone.
-    history.replaceState({ ...history.state, deleted: true }, '');
-    history.back();
-  } else {
-    await loadList(dir);
-  }
-  toast(
-    failedPictures
-      ? `Deleted “${file.name}” — ${failedPictures} picture${failedPictures === 1 ? '' : 's'} could not be`
-      : `Deleted “${file.name}”`,
-  );
 }
 
 // The note is already gone, so a picture that will not delete is reported rather
@@ -790,6 +1073,8 @@ async function disconnect() {
   state.file = null;
   state.dir = '';
   sharedLinks.clear();
+  state.sharedPdfs = {};
+  saveShareRecords({ replace: true });
   for (const url of imageUrls.values()) if (url) URL.revokeObjectURL(url);
   imageUrls.clear();
 
@@ -851,6 +1136,9 @@ function openSettings() {
   for (const input of document.querySelectorAll('input[name="theme"]')) {
     input.checked = input.value === state.theme;
   }
+  for (const input of document.querySelectorAll('input[name="share-format"]')) {
+    input.checked = input.value === state.shareFormat;
+  }
   $('#settings').showModal();
   setTimeout(() => $('#recent-count').focus(), 60);
 }
@@ -862,11 +1150,18 @@ function saveSettings(event) {
   const nextTheme = themeChoice(document.querySelector('input[name="theme"]:checked')?.value);
   if (nextTheme !== state.theme) trackEvent(`theme-${nextTheme}`);
   state.theme = nextTheme;
+  const nextFormat = shareFormatChoice(
+    document.querySelector('input[name="share-format"]:checked')?.value,
+  );
+  if (nextFormat !== state.shareFormat) trackEvent(`share-format-${nextFormat}`);
+  state.shareFormat = nextFormat;
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
   localStorage.setItem(UNDO_KEY, String(state.undoMax));
   localStorage.setItem(THEME_KEY, state.theme);
+  localStorage.setItem(SHARE_FORMAT_KEY, state.shareFormat);
   editor.setUndoLimit(state.undoMax);
   applyTheme();
+  updateShareButton();
   trackEvent('settings-save');
   $('#settings').close();
   if (!$('#screen-list').hidden) renderList();
@@ -936,24 +1231,24 @@ async function boot() {
   $('#viewer-x').addEventListener('click', () => $('#viewer').close());
   $('#share-close').addEventListener('click', () => $('#share-sheet').close());
   $('#share-copy').addEventListener('click', async () => {
-    const url = $('#share-url').value;
-    if (!url) return;
-    try {
-      await navigator.clipboard.writeText(url);
+    if (!shareUrl) return;
+    if (await copyText(shareUrl)) {
       trackEvent('share-copy');
       $('#share-copy').textContent = 'Copied';
       setTimeout(() => {
         $('#share-copy').textContent = 'Copy link';
       }, 1600);
-    } catch {
-      // No clipboard permission: the link is on screen to select by hand.
-      $('#share-url').select();
-      $('#share-note').textContent = 'Select the link above and copy it.';
+    } else {
+      // The link is deliberately not on screen, so the share sheet is the only
+      // other way out of a blocked clipboard.
+      $('#share-note').textContent = canShare()
+        ? 'Could not copy the link. Use Share… to send it instead.'
+        : 'Could not copy the link. This browser blocked clipboard access.';
     }
   });
   $('#share-send').addEventListener('click', async () => {
-    const url = $('#share-url').value;
-    if (!url) return;
+    if (!shareUrl) return;
+    const url = shareUrl;
     try {
       await navigator.share(sharePayload($('#share-where').textContent, url));
       trackEvent('share-send');

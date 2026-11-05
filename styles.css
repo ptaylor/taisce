@@ -946,6 +946,28 @@ main {
   box-shadow: none;
 }
 
+/* A shared PDF that no longer matches the note. The accent border is the
+   highlight; the dot makes it legible when the button is small or the display
+   dims the border. Both clear as soon as the note is republished. */
+.tool-btn.needs-publish {
+  position: relative;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.tool-btn.needs-publish::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
 /* ------------------------------------------------------------------ busy */
 
 /* A wait has to look like a wait. Solid rather than translucent, because the
@@ -1039,8 +1061,13 @@ main {
 
 /* --------------------------------------------------------------- dialogs */
 
+/* Chrome positions a plain modal dialog against the document even though it
+   sits in the top layer, so a sheet opened from a scrolled note can put its
+   heading above the window — observed on the share sheet after editing.
+   Fixed pins every sheet to the viewport; the browser still supplies the
+   maximum height and scrolling. */
 .sheet {
-  position: relative;
+  position: fixed !important;
   width: min(30rem, calc(100vw - 2rem));
   padding: 1.4rem;
   border: 1px solid var(--line);
@@ -1128,8 +1155,7 @@ main {
 
 /* A message after a field is not a byline; a negative top margin would put it
    inside the control above, so it gets its own gap instead. */
-.field + .where,
-.share-url + .where {
+.field + .where {
   margin-top: 0.55rem;
 }
 
@@ -1228,22 +1254,59 @@ main {
   color: var(--err);
 }
 
-/* The link is on screen as well as on the clipboard: a refused clipboard
-   permission is common enough that the fallback has to be visible. */
-.share-url {
-  width: 100%;
+/* Making a PDF is synchronous layout followed by an upload; without a moving
+   sign the sheet looks dead while the button has already been pressed. */
+.share-busy {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.55rem;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--code-bg);
-  color: var(--fg);
-  font-family: var(--mono);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  color: var(--dim);
 }
 
-.share-url:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
+/* The display above would otherwise beat the browser's own [hidden] rule. */
+.share-busy[hidden] {
+  display: none;
+}
+
+/* Off-screen but still selectable: the fallback for a refused clipboard. It is
+   never meant to be read, so the link stays out of the sheet. */
+.copy-fallback {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.share-spinner {
+  flex: none;
+  width: 0.95rem;
+  height: 0.95rem;
+  border: 2px solid var(--line);
+  border-top-color: var(--accent);
+  border-right-color: var(--accent);
+  border-radius: 50%;
+  animation: share-spin 0.7s linear infinite;
+}
+
+@keyframes share-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Reduced motion keeps the sign and drops the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .share-spinner {
+    animation: none;
+  }
 }
 
 .kinds {

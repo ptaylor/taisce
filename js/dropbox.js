@@ -166,6 +166,20 @@ export class DropboxProvider {
     return { rev: meta.rev };
   }
 
+  /**
+   * Upload a generated PDF beside its note. Unlike a note write there is no
+   * `rev`: a PDF is derived output, so a share regenerates and replaces it.
+   */
+  async writePdf(path, bytes) {
+    const res = await this.content(
+      'files/upload',
+      { path, mode: { '.tag': 'overwrite' }, autorename: false, mute: true },
+      new Blob([bytes], { type: 'application/pdf' }),
+    );
+    const meta = await res.json();
+    return { rev: meta.rev };
+  }
+
   async create(path, text = '') {
     const res = await this.content(
       'files/upload',

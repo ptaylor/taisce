@@ -25,7 +25,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.28">
+<meta name="app-version" content="v0.29">
 </head>
 <body>
 
@@ -205,6 +205,14 @@
       <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
       <label><input type="radio" name="theme" value="light"><span>Light</span></label>
     </fieldset>
+    <p class="where" aria-hidden="true">Share files as</p>
+    <fieldset class="kinds">
+      <legend>Share files as</legend>
+      <label><input type="radio" name="share-format" value="pdf" checked><span>PDF</span></label>
+      <label><input type="radio" name="share-format" value="markdown"><span>Markdown</span></label>
+    </fieldset>
+    <p class="where">A PDF copy sits beside the note and must be republished after
+      edits. Markdown shares the note itself and is always current.</p>
     <label class="field">
       <span>Recent files shown on the home screen</span>
       <input id="recent-count" type="number" inputmode="numeric" min="1" max="20" step="1">
@@ -226,10 +234,13 @@
   </div>
 </dialog>
 
-<dialog id="share-sheet" class="sheet">
-  <h2>Share</h2>
+<dialog id="share-sheet" class="sheet" aria-labelledby="share-title">
+  <h2 id="share-title">Share</h2>
   <p id="share-where" class="where"></p>
-  <input id="share-url" class="share-url" type="url" readonly aria-label="Shared link">
+  <div id="share-busy" class="share-busy" role="status" aria-live="polite" hidden>
+    <span class="share-spinner" aria-hidden="true"></span>
+    <span id="share-busy-label">Making the PDF…</span>
+  </div>
   <p id="share-note" class="where"></p>
   <menu>
     <button id="share-close" class="link" type="button">Close</button>
@@ -316,11 +327,13 @@
     <li><strong>Delete</strong> (bottom right of a note, the trash can) asks
       first, naming the file, and then moves it to the Dropbox trash — where it
       can be restored at dropbox.com until the trash expires. The pictures that
-      note links to go with it; pictures belonging to other notes do not.</li>
-    <li><strong>Share</strong> (bottom right of a note) creates a
-      read-only Dropbox link and offers to copy it or hand it to the phone's
-      share sheet. Anyone with the link can read the note; revoke it in Dropbox
-      to stop that.</li>
+      note links to and any PDF copy made for sharing go with it; pictures
+      belonging to other notes do not.</li>
+    <li><strong>Share</strong> (bottom right of a note) creates a read-only
+      Dropbox link using the format chosen in Settings: a PDF copy beside the
+      note, or the Markdown file itself. In PDF mode a dot on the Share button
+      means the note has changed since the PDF was published — share again to
+      update it behind the same link.</li>
   </ul>
   <h3>Install on a phone</h3>
   <ul>

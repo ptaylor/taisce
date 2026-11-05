@@ -40,15 +40,18 @@
       <li><strong>Permissions requested</strong>: <code>files.metadata.read</code>
         (list files and folders), <code>files.content.read</code> (open a note or
         an image), <code>files.content.write</code> (save a note, create a file
-        or folder, upload a pasted image) and <code>sharing.read</code> /
+        or folder, upload a pasted image or the PDF made when sharing) and
+        <code>sharing.read</code> /
         <code>sharing.write</code> (create or reuse a shared link when you press
         Share). Sharing is never automatic: no link exists until you ask for
         one.</li>
+      <!-- Updated with Claude Code (deepseek-flash). -->
       <li><strong>Shared links are yours.</strong> A link you create with
-        <strong>Share</strong> is a Dropbox shared link for that one file. It is
-        public: anyone who has the URL can read the file. Taisce does not send
-        it anywhere — it is copied to your clipboard, or handed to your device's
-        share sheet, and nowhere else.</li>
+        <strong>Share</strong> is a Dropbox shared link for what you chose to
+        share: the Markdown note itself, or a PDF copy generated beside it. It
+        is public: anyone who has the URL can read that file. Taisce does not
+        send it anywhere — it is copied to your clipboard, or handed to your
+        device's share sheet, and nowhere else.</li>
       <li><strong>Nothing else.</strong> Taisce does not request your name,
         email, contacts, other apps, or any other Dropbox data.</li>
     </ul>
@@ -56,16 +59,20 @@
     <h2>What is stored, and where</h2>
     <ul>
       <li><strong>In your browser</strong>: a Dropbox refresh token and a
-        short-lived access token in <code>localStorage</code>, plus two
-        preferences (how many recent files to show, how many undo steps to keep).
-        No note content is kept in the browser once you leave the page.
+        short-lived access token in <code>localStorage</code>, plus preferences
+        (theme, how many recent files to show, how many undo steps to keep, and
+        whether to share as PDF or Markdown). In PDF mode it also keeps a small
+        per-note record of what was shared — the note's path and a fingerprint
+        of its text, never the text itself — so the app can tell you when the
+        PDF needs republishing. No note content is kept in the browser once you
+        leave the page.
         <em>Browser storage is per origin, and this app is served from
         <code>ptaylor.github.io</code>, which also hosts other project pages of
         the same account — those pages share this storage. A separate domain
         would isolate it.</em></li>
-      <li><strong>In your Dropbox account</strong>: your notes, and pictures you paste
-        into a note, which are uploaded to an <code>_assets</code> folder beside
-        that note.</li>
+      <li><strong>In your Dropbox account</strong>: your notes, pictures you paste
+        into a note, and, when you share in PDF mode, the generated PDF copy
+        beside that note.</li>
       <li><strong>On our servers</strong>: nothing. We do not operate a server
         for this app. There is no advertising and no tracking pixel, and no
         third-party script is loaded: the Markdown renderer and the analytics
@@ -85,7 +92,8 @@
         other sites.</li>
       <li>What is sent is a <strong>count of an event name</strong> from a fixed
         list — "a note was opened", "a link was edited", "the slash menu was
-        used", "a save conflicted" — together with the release of the app that
+        used", "a save conflicted", "PDF sharing was chosen" — together with the
+        release of the app that
         sent it. <strong>Never a file name, a folder, a search term, the contents
         of a note, a shared link, or anything from your Dropbox account.</strong></li>
       <li>GoatCounter records the page address, referring site, browser, screen
