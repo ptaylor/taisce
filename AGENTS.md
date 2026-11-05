@@ -21,8 +21,8 @@ nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, interactive task lists, new files and folders, renaming,
 recent files, filename search, undo/redo with a configurable depth, pasted
 images, background `.bak` backups when a note opens, sharing as PDF or Markdown
-with a republish cue for PDFs, the `docs/` guide, the icon set and `publish.sh`
-all exist and are tested. The site is live at
+with background republishing of shared PDFs, the `docs/` guide, the icon set and
+`publish.sh` all exist and are tested. The site is live at
 <https://ptaylor.github.io/taisce/>; `./publish.sh` is what puts a new version
 there.
 
@@ -40,8 +40,10 @@ Known gaps:
   switch to sharing the Markdown file itself. The PDF is text-only (pictures
   become their alt text), overwrites any existing file at that path, and is
   deleted with the note, so a public link cannot outlive what it points at.
-- The Share button's republish dot reads a per-browser record, so a PDF shared
-  from another device is not known here and will not raise the cue.
+- The Share button's republish dot reads a per-browser record. A PDF shared
+  from another device is discovered on the next save, not when the note opens,
+  so the dot can be absent until then; the background update itself still runs
+  once that probe finds the link.
 
 ## Commands
 
@@ -232,7 +234,9 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     needs no Dropbox account and no Taisce install. Dropbox previews `.md` as
     plain text, so Share defaults to a generated `.pdf` beside the note and
     links to that; Settings can share the `.md` itself instead. Republishing
-    overwrites the same PDF path, so Dropbox keeps the same shared link. Share
+    overwrites the same PDF path, in the background after an edit as well as on
+    demand, so Dropbox keeps the same shared link and people never need a new
+    address. Share
     links, never files: Chromium's share sheet whitelist excludes `.md` and
     `text/markdown`, and it fails *after* `canShare()` has already said yes.
   - Paths: `""` is the root; paths have no leading slash. The provider hands the
@@ -473,13 +477,24 @@ Rules:
   `assets/`; those references keep working (resolution follows the reference,
   not the folder name) and that folder stays visible until it is renamed in
   Dropbox.
-- **A PDF share is updated in place, never re-created.** The PDF is
-  `<note>.pdf` beside the note, so overwriting it on every share keeps the
-  Dropbox link valid; never add a timestamp or a new path, which would mint a
-  new URL. The Share button's dot compares a fingerprint of the note with the
-  text last published in this browser (`js/share.js`), so it is a cue, not a
-  source of truth: a share made on another device is invisible here. Markdown
-  mode needs no such record because Dropbox serves the note as edited.
+- **A PDF share is updated in place, never re-created — and it updates in the
+  background.** The PDF is `<note>.pdf` beside the note, so overwriting it on
+  every share keeps the Dropbox link valid; never add a timestamp, a new path or
+  a cache-busting parameter, which would mint or mutate a URL that people
+  already have. Once a note has a PDF behind a shared link — a record here, or a
+  sibling Taisce PDF that Dropbox reports as shared; never a foreign PDF of the
+  same name — later saves regenerate and upload it after a quiet period
+  (`publishSharedPdf` in `app.js`), so the one link everyone holds keeps
+  pointing at the latest copy. That upload is serialised with a manual share,
+  carries the **saved** text not the buffer, is cancelled by delete and rename
+  through `shareRun`, and those operations already await `sharePending` so it
+  cannot recreate a deleted PDF or land on the old name. A failure leaves the
+  record alone, so the dot stays as the cue and Share retries; it must never
+  block editing. The Share button's dot compares a fingerprint of the note with
+  the text last published in this browser (`js/share.js`), so it is a cue, not a
+  source of truth: a share made on another device is invisible here until a save
+  probes for it. Markdown mode needs no such record because Dropbox serves the
+  note as edited.
   **Deleting a note deletes its PDF with it**, after the note itself is gone:
   a PDF without its note is an orphan behind a public link. A note that was
   never shared has no PDF, and `path/not_found` from that delete is the normal

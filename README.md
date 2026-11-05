@@ -41,9 +41,10 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Share a note** with the button in its corner. Settings chooses the format:
   **PDF** (the default) makes a copy beside the note and shares a rendered page;
   **Markdown** shares the note itself. The link is read-only and public, so
-  anyone who has it can read what was shared. After a PDF share, a dot on the
-  button means the note has changed since it was published — share again to
-  update the PDF behind the same link.
+  anyone who has it can read what was shared. Once a PDF is shared, later edits
+  replace it in the background, so the same Dropbox link keeps pointing at the
+  latest copy and nobody needs a new address. A dot on the button means that
+  update has not gone through yet — share again to retry it now.
 - **Tap a task item** in the rendered file to check or uncheck it. The file is
   updated and saved exactly like any other edit.
 - **Tap a link** to change the words, change the address, copy it, open it in a

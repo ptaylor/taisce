@@ -158,9 +158,11 @@ function setShareButtonStale(stale) {
   button.classList.toggle('needs-publish', stale);
   button.setAttribute(
     'aria-label',
-    stale ? 'Share this file — the PDF needs republishing' : 'Share this file',
+    stale ? 'Share this file — the shared PDF is out of date' : 'Share this file',
   );
-  button.title = stale ? 'The shared PDF is out of date — share again to republish it' : '';
+  button.title = stale
+    ? 'The shared PDF is out of date; it updates in the background. Share again to update it now.'
+    : '';
 }
 
 /**
@@ -240,7 +242,11 @@ const engine = createSaveEngine({
   provider,
   onStatus: (kind, detail) => {
     // A save changes the modified time, so the recent list is stale.
-    if (kind === 'saved') state.index = null;
+    if (kind === 'saved') {
+      state.index = null;
+      // A shared PDF follows the note after the typing has settled.
+      scheduleAutoPublish();
+    }
     if (kind === 'error') trackEvent('error-save');
     setStatus(kind, detail);
   },
@@ -477,6 +483,7 @@ function renderList() {
 
 async function loadList(dir = state.dir, { push = false } = {}) {
   const id = ++navId;
+  cancelAutoPublish();
   dir = normaliseDir(dir);
   recordView({ screen: 'list', dir }, { push });
   state.dir = dir;
@@ -531,8 +538,11 @@ async function loadList(dir = state.dir, { push = false } = {}) {
 
 async function openFile(file, { push = true } = {}) {
   const id = ++navId;
+  cancelAutoPublish();
   await engine.flush();
   if (id !== navId) return;
+  // The note losing the screen still gets its shared copy updated.
+  publishBeforeLeaving();
   engine.close();
 
   const dir = parentDir(file.path);
@@ -559,6 +569,8 @@ async function openFile(file, { push = true } = {}) {
     editor.setText(clean);
     engine.open({ path: file.path, text: clean, rev });
     updateShareButton(clean);
+    // A PDF shared from this or another device may be behind what was opened.
+    if (pdfNeedsPublish(state.sharedPdfs, shareKey(file.path), clean)) scheduleAutoPublish(file.path);
     trackEvent('file-open');
     setStatus('loaded');
     // Housekeeping after the note is on screen, never part of the open: the
@@ -591,6 +603,9 @@ async function refresh() {
       }
       engine.open({ path: state.file.path, text: clean, rev });
       updateShareButton(clean);
+      if (pdfNeedsPublish(state.sharedPdfs, shareKey(state.file.path), clean)) {
+        scheduleAutoPublish(state.file.path);
+      }
       setStatus('loaded');
     } catch (error) {
       if (id !== navId) return;
@@ -611,6 +626,7 @@ async function goBack() {
   }
   if (!$('#screen-file').hidden) {
     await engine.flush();
+    publishBeforeLeaving();
     engine.close();
     state.file = null;
     await loadList(state.dir);
@@ -633,6 +649,7 @@ async function restoreView(view) {
   // takes over the editor. A deleted note's Forward entry lands here too.
   if (state.file) {
     await engine.flush();
+    publishBeforeLeaving();
     engine.close();
     state.file = null;
   }
@@ -863,10 +880,19 @@ async function submitRename(event) {
 
     // A share that is still uploading must finish before its PDF is moved, or
     // it could recreate the old path after the note has taken the new one.
-    // Bumping the run stops it writing a record for the old name.
+    // Bumping the run stops it writing a record for the old name. A publish
+    // still waiting on its quiet period has not joined `sharePending` yet, so
+    // cancel it too: if it fired during the move it would write a fresh PDF at
+    // the old path. A failed rename starts it again below.
     shareRun += 1;
+    cancelAutoPublish();
     await sharePending;
-    if (!stillOpen()) return;
+    if (!stillOpen()) {
+      // Back closed the sheet before the move began: the note itself may
+      // still be open, and its publish is still owed.
+      resumeAutoPublish(file.path);
+      return;
+    }
 
     let moved;
     try {
@@ -877,6 +903,7 @@ async function submitRename(event) {
         showAuth();
         return;
       }
+      resumeAutoPublish(file.path, stillOpen);
       if (caught instanceof ConflictError) return fail('That name is already taken.');
       if (/not[_-]?found/i.test(caught.message || '')) {
         return fail('That note no longer exists.');
@@ -917,7 +944,12 @@ async function submitRename(event) {
       pdf = 'failed';
     }
     moveShareState(oldPath, finalPath, pdf === 'moved');
-    if (here) updateShareButton(text);
+    if (here) {
+      updateShareButton(text);
+      // The move cancelled a pending background publish; start again on the
+      // new path if the PDF is still behind the note.
+      resumeAutoPublish(finalPath);
+    }
     trackEvent('file-rename');
     $('#rename-file').close();
     toast(
@@ -950,6 +982,155 @@ let shareUrl = '';
 let shareRun = 0;
 let sharePending = Promise.resolve();
 let deleting = false;
+
+// A PDF that has been shared is kept in step with the note in the background.
+// The Dropbox link is stable, so this uploads to the same path and never mints a
+// new share: the link everyone already has points at whatever the path holds. A
+// quiet period keeps a burst of autosaves from producing a burst of uploads.
+const AUTO_PUBLISH_DELAY = 4000;
+let autoPublishTimer = 0;
+let autoPublishPath = null;
+const probedSharedPdfs = new Map();
+const autoCounted = new Set();
+let pdfWriteChain = Promise.resolve();
+
+// A note shared from another device has no record here. Ask Dropbox whether the
+// sibling PDF is one Taisce made and is behind a link before overwriting it: a
+// PDF the reader exported under that name must never be mistaken for ours.
+function pdfSharedElsewhere(path) {
+  if (probedSharedPdfs.has(path)) return probedSharedPdfs.get(path);
+  const probe = (async () => {
+    const pdf = pdfPathFor(path);
+    try {
+      if (!(await provider.hasSharedLink(pdf))) return false;
+      const blob = await provider.readBlob(pdf);
+      return isTaiscePdf(new Uint8Array(await blob.arrayBuffer()));
+    } catch (error) {
+      if (error instanceof AuthError) throw error;
+      if (error instanceof ScopeError) trackEvent('share-scope');
+      return false;
+    }
+  })();
+  probedSharedPdfs.set(path, probe);
+  probe.catch(() => probedSharedPdfs.delete(path));
+  return probe;
+}
+
+// One PDF write at a time: a manual share and a background publish can be in
+// flight together, and the later content must be the one left on disk.
+function writePdf(path, bytes) {
+  const task = pdfWriteChain.then(() => provider.writePdf(path, bytes));
+  pdfWriteChain = task.catch(() => {});
+  return task;
+}
+
+function cancelAutoPublish() {
+  clearTimeout(autoPublishTimer);
+  autoPublishTimer = 0;
+  autoPublishPath = null;
+}
+
+// Start a cancelled publish again, but only for the note this screen still has
+// open and only when its PDF is behind a shared link whose copy is stale.
+function resumeAutoPublish(path, allowed = () => true) {
+  if (!path || !allowed()) return;
+  if (state.file?.path !== path) return;
+  if (pdfNeedsPublish(state.sharedPdfs, shareKey(path), engine.text())) scheduleAutoPublish(path);
+}
+
+// Leaving a note is the other moment its shared copy goes stale: the typing has
+// stopped, and the quiet period cannot finish because the note — and the editor
+// that would supply its text — is about to be closed. Capture the saved note
+// and publish now. Call this after a successful flush, before closing.
+function publishBeforeLeaving() {
+  const file = state.file;
+  cancelAutoPublish();
+  if (!file || deleting || engine.isDirty()) return;
+  const text = engine.savedText();
+  if (!pdfNeedsPublish(state.sharedPdfs, shareKey(file.path), text)) return;
+  void publishSharedPdf(file.path, { text, name: file.name });
+}
+
+function scheduleAutoPublish(path = state.file?.path) {
+  if (!path || deleting) return;
+  clearTimeout(autoPublishTimer);
+  autoPublishPath = path;
+  autoPublishTimer = setTimeout(() => {
+    autoPublishTimer = 0;
+    autoPublishPath = null;
+    if (state.file?.path !== path) return;
+    void publishSharedPdf(path);
+  }, AUTO_PUBLISH_DELAY);
+}
+
+// Publish the shared PDF for `path`. Without a snapshot the note must still be
+// open here and carries its saved text. A snapshot is the note as it was left:
+// a note that is closed and replaced cannot answer for itself afterwards, and
+// an update that is never sent is worse than one sent from the last edit.
+async function publishSharedPdf(path, snapshot = null) {
+  if (deleting) return;
+  let text;
+  let name;
+  if (snapshot) {
+    text = snapshot.text;
+    name = snapshot.name;
+  } else {
+    if (state.file?.path !== path || engine.path() !== path) return;
+    // A publish carries the saved note, not a half-typed buffer.
+    if (engine.isDirty()) {
+      scheduleAutoPublish(path);
+      return;
+    }
+    // The sheet owns the link and the records while it is open; try again after.
+    if ($('#share-sheet').open) {
+      scheduleAutoPublish(path);
+      return;
+    }
+    text = engine.savedText();
+    name = state.file.name;
+  }
+
+  const hash = shareFingerprint(text);
+  const record = state.sharedPdfs[shareKey(path)];
+  if (record && record.hash === hash) return;
+
+  const run = shareRun;
+  const task = (async () => {
+    if (!record && !(await pdfSharedElsewhere(path))) return;
+    if (run !== shareRun || deleting) return;
+    if (snapshot) {
+      // The note may have been reopened while the probe ran. If it now holds
+      // different text, that text's own save is the publish that should win.
+      if (state.file?.path === path && engine.path() === path) {
+        if (engine.isDirty() || engine.savedText() !== text) {
+          scheduleAutoPublish(path);
+          return;
+        }
+      }
+    } else if (engine.path() !== path || engine.isDirty() || engine.savedText() !== text) {
+      if (state.file?.path === path) scheduleAutoPublish(path);
+      return;
+    }
+    const bytes = markdownToPdf(text, { title: name || 'Untitled' });
+    if (run !== shareRun || deleting) return;
+    await writePdf(pdfPathFor(path), bytes);
+    // The upload landed: the record follows the content even if a rename or
+    // delete began while it was out; those re-key or remove it afterwards.
+    state.sharedPdfs = recordPdfShare(state.sharedPdfs, shareKey(path), hash);
+    saveShareRecords();
+    if (state.file?.path === path) updateShareButton(engine.text());
+    if (!autoCounted.has(path)) {
+      autoCounted.add(path);
+      trackEvent('share-auto');
+    }
+  })().catch((error) => {
+    if (error instanceof AuthError) return showAuth();
+    trackEvent('error-share-publish');
+    // The record is untouched, so the dot stays and Share retries on demand.
+    console.warn('background share update failed:', error.message || error);
+  });
+  sharePending = Promise.allSettled([sharePending, task]).then(() => {});
+}
 
 // The sheet's status line doubles as the progress sign: null hides it, a label
 // shows the spinner beside the label. "Please wait" is never the only message,
@@ -1021,7 +1202,7 @@ function openShare() {
   if (!file || deleting) return Promise.resolve();
   const run = ++shareRun;
   const task = shareNote(file, run);
-  sharePending = task.catch(() => {});
+  sharePending = Promise.allSettled([sharePending, task]).then(() => {});
   return task;
 }
 
@@ -1043,11 +1224,11 @@ async function shareNote(file, run) {
     $('#share-title').textContent = 'Re-share';
     $('#share-note').textContent = republishing
       ? 'This note has changed since the PDF was last shared. Sharing again ' +
-        'replaces the PDF behind the same link.'
+        'republishes it now; otherwise the PDF updates in the background.'
       : format === 'pdf'
         ? 'This note has already been shared. Sharing again replaces the PDF ' +
-          'behind the same link.'
-        : 'This file has already been shared. Sharing again keeps the same link.';
+          'behind the same Dropbox link.'
+        : 'This file has already been shared. Sharing again keeps the same Dropbox link.';
   }
   setShareBusy(
     format === 'markdown'
@@ -1099,7 +1280,9 @@ async function shareNote(file, run) {
       setShareBusy('Uploading the PDF…');
       await nextPaint();
       if (run !== shareRun) return;
-      await provider.writePdf(sharePath, bytes);
+      // Through the same chain as a background publish: a manual share always
+      // queues behind one already in flight, so the newest text lands last.
+      await writePdf(sharePath, bytes);
     }
 
     setShareBusy('Asking Dropbox for the link…');
@@ -1127,12 +1310,12 @@ async function shareNote(file, run) {
             'always current.'
           : 'Anyone with this link can read this file until you stop sharing it in Dropbox.'
         : republishing
-          ? 'Re-shared. The updated PDF is behind the same link, so anyone who ' +
-            'already has it sees the new version.'
+          ? 'Re-shared. The updated PDF is behind the same Dropbox link, so the ' +
+            'link always points at the latest copy.'
           : resharing
-            ? 'Re-shared. The PDF behind the same link has been refreshed.'
-            : 'Anyone with this link can read a PDF copy of this note. Sharing again ' +
-              'updates the PDF behind the same link.';
+            ? 'Re-shared. The PDF behind the same Dropbox link has been refreshed.'
+            : 'Anyone with this link can read a PDF copy of this note. From now ' +
+              'on it is kept up to date in the background.';
     $('#share-copy').disabled = false;
     $('#share-copy').hidden = false;
     $('#share-send').hidden = !canShare();
@@ -1183,6 +1366,7 @@ async function deleteFile() {
   if (!ok) return;
 
   deleting = true;
+  cancelAutoPublish();
   try {
     // Upload anything pending first, so a refused delete leaves the note saved
     // and a queued save cannot land on a path that no longer exists.
@@ -1292,6 +1476,7 @@ async function disconnect() {
   if (!ok) return;
   if ($('#settings').open) $('#settings').close();
 
+  cancelAutoPublish();
   await engine.flush();
   engine.close();
   try {

@@ -37,13 +37,13 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
   editor      template-insert task-toggle image-paste image-open image-delete
               undo redo
   links       link-open link-change link-remove link-copy link-go link-paste
-  share       share-open share-copy share-send
+  share       share-open share-copy share-send share-auto
   settings    settings-open settings-save help-open recent-toggle installed
               theme-system theme-dark theme-light
               share-format-pdf share-format-markdown
   sync        conflict-merged conflict-dropped
   failures    error-open error-save error-search error-share error-image
-              error-delete error-image-delete error-backup
+              error-delete error-image-delete error-backup error-share-publish
               share-scope         (the grant predates sharing.read)
 
 Anything not listed falls into an "other" bucket so a new event is never lost
@@ -337,7 +337,7 @@ EDITOR_EVENTS = (
 LINK_EVENTS = (
     "link-open", "link-change", "link-remove", "link-copy", "link-go", "link-paste",
 )
-SHARE_EVENTS = ("share-open", "share-copy", "share-send", "share-scope")
+SHARE_EVENTS = ("share-open", "share-copy", "share-send", "share-auto", "share-scope")
 SETTINGS_EVENTS = (
     "settings-open", "settings-save", "help-open", "recent-toggle", "installed",
     "theme-system", "theme-dark", "theme-light",
@@ -346,7 +346,7 @@ SETTINGS_EVENTS = (
 SYNC_EVENTS = ("conflict-merged", "conflict-dropped")
 FAILURE_EVENTS = (
     "error-open", "error-save", "error-search", "error-share", "error-image",
-    "error-delete", "error-image-delete", "error-backup",
+    "error-delete", "error-image-delete", "error-backup", "error-share-publish",
 )
 
 KNOWN_EVENTS = (
@@ -848,8 +848,10 @@ def generate_html(report, charts, out_dir):
                             "link-go is a link followed from its editor."),
         _table_section("Sharing", _kv(report["share"]), "Event", "Count",
                        note="share-open → share-copy / share-send is the "
-                            "funnel; share-scope means the stored grant has "
-                            "no sharing permission."),
+                            "funnel; share-auto is a shared PDF updated in the "
+                            "background, counted once per note per session; "
+                            "share-scope means the stored grant has no sharing "
+                            "permission."),
         _table_section("Settings and about", _kv(report["settings"]), "Event", "Count"),
         _table_section("Sync", _kv(report["sync"]), "Event", "Count",
                        note="conflict-merged kept the local edit; "
