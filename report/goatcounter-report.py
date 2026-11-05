@@ -31,7 +31,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
               /v<release>        the same visit, tagged with the release
 
   connect     connect-start      the Connect to Dropbox button was pressed
-  files       new-open file-new folder-new file-open file-delete
+  files       new-open file-new folder-new file-open file-rename file-delete
               open-from-recent open-from-search
   search      search search-empty
   editor      template-insert task-toggle image-paste image-open image-delete
@@ -326,7 +326,7 @@ def parse_period(period):
 
 CONNECT_EVENTS = ("connect-start",)
 FILE_EVENTS = (
-    "new-open", "file-new", "folder-new", "file-open", "file-delete",
+    "new-open", "file-new", "folder-new", "file-open", "file-rename", "file-delete",
     "open-from-recent", "open-from-search",
 )
 SEARCH_EVENTS = ("search", "search-empty")

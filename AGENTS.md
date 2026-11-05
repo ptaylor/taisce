@@ -18,11 +18,11 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 **All four phases implemented and published.** Sign-in (PKCE), folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
-editing with autosave, interactive task lists, new files and folders, recent
-files, filename search, undo/redo with a configurable depth, pasted images,
-background `.bak` backups when a note opens, sharing as PDF or Markdown with a
-republish cue for PDFs, the `docs/` guide, the icon set and `publish.sh` all
-exist and are tested. The site is live at
+editing with autosave, interactive task lists, new files and folders, renaming,
+recent files, filename search, undo/redo with a configurable depth, pasted
+images, background `.bak` backups when a note opens, sharing as PDF or Markdown
+with a republish cue for PDFs, the `docs/` guide, the icon set and `publish.sh`
+all exist and are tested. The site is live at
 <https://ptaylor.github.io/taisce/>; `./publish.sh` is what puts a new version
 there.
 
@@ -244,6 +244,10 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     upload-whole-file, with no partial writes. Use the `rev`/`update` write mode
     and surface the `conflict` error instead of overwriting whatever changed
     underneath.
+  - A rename is `files/move_v2` with `autorename: false`, so a conflict is
+    reported rather than resolved by Dropbox inventing a name. Shared links
+    survive a move: `sharing/list_shared_links` still finds them, which is why
+    the rename warning asks Dropbox instead of promising the link will break.
   - The token lives in `localStorage` because there is no backend. "Disconnect"
     offers the **refresh token** to `auth/token/revoke` first, then the access
     token, and forgets both locally: revoking only the short-lived token would
@@ -468,6 +472,18 @@ Rules:
   a PDF without its note is an orphan behind a public link. A note that was
   never shared has no PDF, and `path/not_found` from that delete is the normal
   case, not a failure to report.
+- **A rename follows the file, never the folder.** `provider.rename` is
+  `files/move_v2` with `autorename: false`, so a name the reader typed either
+  takes that name or fails; it never lands on a generated suffix. A PDF Taisce
+  made moves with the note — checked for `isTaiscePdf` first, as delete does, so
+  a PDF the reader exported under that name is left alone — and the published
+  record and session link cache are re-keyed only when the PDF actually moved.
+  Warn before renaming a shared note, asking Dropbox (`hasSharedLink`) as well as
+  this browser's records, because another device's share is not in
+  `localStorage`. **Dropbox keeps shared links attached to the file through a
+  move**, so the warning must say the link keeps working rather than claiming it
+  breaks; renaming is not unsharing. Wait for an in-flight share
+  (`sharePending`) before moving the PDF, or it can land on the old path again.
 - **The system back button and the back arrow are one history traversal.** The
   app is a single document with no address of its own, so the Android back
   gesture only has somewhere to go if the screens are history entries:

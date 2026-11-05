@@ -6,7 +6,14 @@ import { createSaveEngine } from './js/save.js';
 import { createBackupWriter } from './js/backup.js';
 import { createEditor } from './js/editor.js';
 import { AuthError, ConflictError, ScopeError } from './js/errors.js';
-import { breadcrumbs, isHiddenName, joinPath, normaliseDir, parentDir } from './js/paths.js';
+import {
+  breadcrumbs,
+  isHiddenName,
+  joinPath,
+  normaliseDir,
+  parentDir,
+  renamedPath,
+} from './js/paths.js';
 import { folderOf, recentCount, recentFiles, recentsOpen, searchFiles } from './js/recents.js';
 import { undoLimit } from './js/history.js';
 import {
@@ -705,6 +712,228 @@ async function submitNewFile(event) {
   }
 }
 
+function showRename() {
+  const file = state.file;
+  if (!file || deleting) return;
+  $('#rename-title').textContent = `Rename “${file.name}”`;
+  $('#rename-where').textContent = state.dir ? `In ${state.dir}` : 'In the top level';
+  $('#rename-name').value = file.name;
+  $('#rename-error').hidden = true;
+  $('#rename-status').hidden = true;
+  $('#rename-save').disabled = false;
+  $('#rename-file').showModal();
+  setTimeout(() => {
+    const input = $('#rename-name');
+    input.focus();
+    input.select();
+  }, 60);
+}
+
+// Dropbox keeps a shared link attached to the file, so renaming neither breaks
+// nor revokes it. Ask Dropbox as well as this browser's records, because a
+// share made on another device is not in localStorage here.
+async function noteIsShared(file) {
+  if (
+    state.sharedPdfs[file.path] ||
+    sharedLinks.has(file.path) ||
+    sharedLinks.has(pdfPathFor(file.path))
+  ) {
+    return true;
+  }
+  if (typeof provider.hasSharedLink !== 'function') return false;
+  const answers = await Promise.allSettled([
+    provider.hasSharedLink(file.path),
+    provider.hasSharedLink(pdfPathFor(file.path)),
+  ]);
+  return answers.some((answer) => answer.status === 'fulfilled' && answer.value);
+}
+
+// The PDF is named after the note, so it follows a rename. A PDF the reader
+// exported under that name is not ours and is left where it is, as with delete.
+async function moveSharePdf(notePath, nextPath) {
+  const from = pdfPathFor(notePath);
+  const to = pdfPathFor(nextPath);
+  try {
+    const existing = await provider.metadata(from);
+    if (existing.type !== 'file') return 'none';
+    const blob = await provider.readBlob(from);
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (!isTaiscePdf(bytes)) return 'none';
+    await provider.rename(from, to);
+    return 'moved';
+  } catch (error) {
+    if (error instanceof AuthError) throw error;
+    return /not[_-]?found/i.test(error.message || '') ? 'none' : 'failed';
+  }
+}
+
+// The published record and the session's cached links are keyed by path. A
+// record only follows the PDF when the PDF actually moved; otherwise the new
+// name has no published copy and must not look as though it does.
+function moveShareState(oldPath, nextPath, pdfMoved) {
+  const oldPdf = pdfPathFor(oldPath);
+  const nextPdf = pdfPathFor(nextPath);
+  const noteLink = sharedLinks.get(oldPath);
+  const pdfLink = sharedLinks.get(oldPdf);
+  sharedLinks.delete(oldPath);
+  sharedLinks.delete(oldPdf);
+  if (noteLink) sharedLinks.set(nextPath, noteLink);
+  if (pdfMoved && pdfLink) sharedLinks.set(nextPdf, pdfLink);
+
+  const stored = { ...storedShareRecords(), ...state.sharedPdfs };
+  const record = stored[oldPath];
+  if (!record) return;
+  let next = forgetPdfShare(stored, oldPath);
+  if (pdfMoved) next = recordPdfShare(next, nextPath, record.hash, record.at);
+  state.sharedPdfs = next;
+  saveShareRecords({ replace: true });
+}
+
+async function submitRename(event) {
+  event.preventDefault();
+  const file = state.file;
+  if (!file || deleting) return;
+
+  // A rename is several awaits long. Back closes the sheet first and only then
+  // moves the screen, so check both: the sheet must still be open to *start*
+  // the move, and the screen must still own the editor to paint its result.
+  const id = navId;
+  const stillOpen = () => id === navId && $('#rename-file').open;
+
+  const input = $('#rename-name');
+  const error = $('#rename-error');
+  const status = $('#rename-status');
+  const button = $('#rename-save');
+  error.hidden = true;
+  status.hidden = true;
+
+  const fail = (message) => {
+    error.textContent = message;
+    error.hidden = false;
+  };
+
+  const name = input.value.trim();
+  if (!name) return fail('Give it a name.');
+  if (/[/\\]/.test(name)) {
+    return fail('Names cannot contain / or \\ — a rename keeps the note in this folder.');
+  }
+  // The same rule as a new file: the app must not make a name it then hides.
+  if (isHiddenName(name)) {
+    return fail('Names cannot start with _ — those are hidden from the list.');
+  }
+
+  const nextPath = renamedPath(file.path, name);
+  const displayName = name.replace(/\.md$/i, '');
+  if (nextPath.toLowerCase() === file.path.toLowerCase()) {
+    return fail('That is already its name.');
+  }
+
+  button.disabled = true;
+  try {
+    status.textContent = 'Checking the share…';
+    status.hidden = false;
+    if (await noteIsShared(file)) {
+      if (!stillOpen()) return;
+      const ok = await ask({
+        title: `Rename “${file.name}”?`,
+        body:
+          `This note, or the PDF copy beside it, has a shared link. Renaming ` +
+          `does not revoke that link: it will keep working and open the file ` +
+          `under its new name, so anyone who has it can still read it. Revoke ` +
+          `the link in Dropbox to stop sharing. A PDF copy Taisce made moves ` +
+          `with the note.`,
+        ok: 'Rename',
+      });
+      if (!ok) return;
+    }
+
+    status.textContent = 'Renaming…';
+    status.hidden = false;
+    // The name is a property of the file in Dropbox; pending text has to land
+    // before it moves, or a failed save would be stranded on the old path.
+    await engine.flush();
+    if (!stillOpen()) return;
+    if (engine.isDirty()) {
+      return fail('Could not save the latest changes, so it was not renamed.');
+    }
+    if (engine.path() !== file.path) {
+      return fail('This note is no longer open, so it was not renamed.');
+    }
+
+    // A share that is still uploading must finish before its PDF is moved, or
+    // it could recreate the old path after the note has taken the new one.
+    // Bumping the run stops it writing a record for the old name.
+    shareRun += 1;
+    await sharePending;
+    if (!stillOpen()) return;
+
+    let moved;
+    try {
+      moved = await provider.rename(file.path, nextPath);
+    } catch (caught) {
+      if (caught instanceof AuthError) {
+        $('#rename-file').close();
+        showAuth();
+        return;
+      }
+      if (caught instanceof ConflictError) return fail('That name is already taken.');
+      if (/not[_-]?found/i.test(caught.message || '')) {
+        return fail('That note no longer exists.');
+      }
+      return fail(caught.message || 'could not rename the file');
+    }
+
+    // The move is done; a Back press from here cannot undo it, but it may have
+    // taken the editor somewhere else. Only repaint when this screen still owns
+    // it — otherwise reopening the engine would put a note back on a list.
+    // Use the path Dropbox reports: it is `path_lower`, which is the form every
+    // listing and every share record is keyed by, not the case just typed.
+    const oldPath = file.path;
+    const finalPath = moved.path || nextPath;
+    const here = id === navId;
+    const text = here ? engine.text() : '';
+    if (here) {
+      engine.close();
+      engine.open({ path: finalPath, text, rev: moved.rev });
+      state.file = { name: displayName, path: finalPath, type: 'file' };
+      recordView(
+        { screen: 'file', path: finalPath, name: displayName, dir: state.dir },
+        { push: false },
+      );
+      setTitle(displayName);
+    }
+    state.index = null; // recents and search are keyed by path
+
+    let pdf = 'none';
+    try {
+      pdf = await moveSharePdf(oldPath, finalPath);
+    } catch (caught) {
+      if (caught instanceof AuthError) {
+        $('#rename-file').close();
+        showAuth();
+        return;
+      }
+      pdf = 'failed';
+    }
+    moveShareState(oldPath, finalPath, pdf === 'moved');
+    if (here) updateShareButton(text);
+    trackEvent('file-rename');
+    $('#rename-file').close();
+    toast(
+      pdf === 'failed'
+        ? `Renamed to “${displayName}” — its PDF copy could not be moved; share it again`
+        : `Renamed to “${displayName}”`,
+    );
+    // Back to the listing while the move was out: its rows still carry the old
+    // name. A different note may have been opened instead, which is its own.
+    if (!here && !$('#screen-list').hidden) await loadList(state.dir, { push: false });
+  } finally {
+    button.disabled = false;
+    status.hidden = true;
+    status.textContent = '';
+  }
+}
+
 // Created once per file per session: Dropbox keeps a link per file, so asking
 // again would only cost a round trip.
 const sharedLinks = new Map();
@@ -1227,6 +1456,11 @@ async function boot() {
   });
   $('#delete').addEventListener('click', () => {
     void deleteFile();
+  });
+  $('#rename').addEventListener('click', showRename);
+  $('#rename-cancel').addEventListener('click', () => $('#rename-file').close());
+  $('#rename-form').addEventListener('submit', (event) => {
+    void submitRename(event);
   });
   $('#viewer-x').addEventListener('click', () => $('#viewer').close());
   $('#share-close').addEventListener('click', () => $('#share-sheet').close());

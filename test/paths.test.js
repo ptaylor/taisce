@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {
   HIDDEN_PREFIX,
   isHiddenName,
-  isHiddenPath, baseName, breadcrumbs, joinPath, normaliseDir, parentDir } from '../js/paths.js';
+  isHiddenPath, baseName, breadcrumbs, joinPath, normaliseDir, parentDir,
+  renamedPath } from '../js/paths.js';
 
 test('normaliseDir is the canonical Dropbox shape: leading slash, no trailing slash', () => {
   assert.equal(normaliseDir(''), '');
@@ -25,6 +26,14 @@ test('joinPath handles the root and strips a pasted leading slash', () => {
   assert.equal(joinPath('', 'todo.md'), '/todo.md');
   assert.equal(joinPath('/notes', 'todo.md'), '/notes/todo.md');
   assert.equal(joinPath('/notes/', '/todo.md'), '/notes/todo.md');
+});
+
+test('a rename keeps the note in its folder and accepts an .md extension or not', () => {
+  assert.equal(renamedPath('/notes/Shopping.md', 'Food'), '/notes/Food.md');
+  assert.equal(renamedPath('/notes/Shopping.md', 'Food.md'), '/notes/Food.md');
+  assert.equal(renamedPath('/notes/Shopping.MD', 'Food.MD'), '/notes/Food.MD');
+  assert.equal(renamedPath('/notes/Shopping.md', '  Food  '), '/notes/Food.md');
+  assert.equal(renamedPath('/Shopping.md', 'Food'), '/Food.md');
 });
 
 test('baseName is the last segment, for a file or a folder', () => {

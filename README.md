@@ -34,6 +34,10 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   links to and any PDF copy made for sharing into the Dropbox trash, where you
   can restore them at dropbox.com. Pictures belonging to other notes are left
   alone.
+- **Rename a note** with the pencil in its corner. The name changes, the folder
+  does not, and any PDF copy made for sharing moves with it. If the note has a
+  shared link, Taisce warns first: Dropbox keeps the link working under the new
+  name, so renaming does not stop anyone reading it.
 - **Share a note** with the button in its corner. Settings chooses the format:
   **PDF** (the default) makes a copy beside the note and shares a rendered page;
   **Markdown** shares the note itself. The link is read-only and public, so
@@ -74,8 +78,8 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 
 **All four phases are working** — sign-in, folders with nesting and breadcrumb
 navigation, rendered Markdown, in-place editing with autosave, interactive task
-lists, new files and folders, recent files, filename search, undo/redo, pasted
-images, background `.bak` backups on open, the slash menu for templates, the
+lists, new files and folders, renaming, recent files, filename search, undo/redo,
+pasted images, background `.bak` backups on open, the slash menu for templates, the
 link editor, sharing a file as a Dropbox link, the guide at
 [`docs/`](./docs/index.html), icons and the publish script.
 Not yet done, and deliberately so: offline writing (a save while offline errors

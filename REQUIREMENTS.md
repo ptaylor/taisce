@@ -23,6 +23,10 @@ Creation of a new file or direcrtory should be easy (eg a + ) .
 
 It must be possible to navigate up and down through the hierarchy. (P2)
 
+An existing Markdown file can be renamed without leaving its folder. Any PDF
+copy made for sharing moves with it, and the rename warns when the note has a
+shared link, because Dropbox keeps that link working under the new name.
+
 On opening the app the most recent files modifed are shown (configurable in size) (P3) The list can be folded away and that choice is remembered.
 
 A search functaion is provided to search based on the file name (in any directory) (P3)
