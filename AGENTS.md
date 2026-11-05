@@ -20,8 +20,9 @@ covers **how** the repository is worked on. When the two disagree about scope,
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, interactive task lists, new files and folders, recent
 files, filename search, undo/redo with a configurable depth, pasted images,
-background `.bak` backups when a note opens, the `docs/` guide, the icon set and
-`publish.sh` all exist and are tested. The site is live at
+background `.bak` backups when a note opens, sharing as PDF or Markdown with a
+republish cue for PDFs, the `docs/` guide, the icon set and `publish.sh` all
+exist and are tested. The site is live at
 <https://ptaylor.github.io/taisce/>; `./publish.sh` is what puts a new version
 there.
 
@@ -35,6 +36,12 @@ Known gaps:
 - Backups are best-effort and invisible: a failure is logged, not shown, and the
   next open retries. The old copy is deleted before the new one is written, so a
   failed upload can leave no backup until then.
+- Sharing a note defaults to a generated `note.pdf` beside it; Settings can
+  switch to sharing the Markdown file itself. The PDF is text-only (pictures
+  become their alt text), overwrites any existing file at that path, and is
+  deleted with the note, so a public link cannot outlive what it points at.
+- The Share button's republish dot reads a per-browser record, so a PDF shared
+  from another device is not known here and will not raise the cue.
 
 ## Commands
 
@@ -70,7 +77,7 @@ served.
 | `styles.css` | Design tokens (`--bg`, `--accent`, …) and layout. Light and dark. |
 | `js/auth.js` | PKCE, the token store, refresh, sign-out. |
 | `js/backup.js` | The background `.bak` writer: one write per note at a time, metadata before delete, failures only logged. |
-| `js/dropbox.js` | The Dropbox API client: list (folders + files), read, metadata, write, create, create-folder, remove, revoke. |
+| `js/dropbox.js` | The Dropbox API client: list (folders + files), read, metadata, write, PDF upload, create, create-folder, remove, share link, revoke. |
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
 | `js/paths.js` | Canonical Dropbox paths: normalise, join, parent, breadcrumbs. Pure. |
 | `js/recents.js` | Recent ordering, filename search, the recent-count and open/closed preferences. Pure. |
@@ -82,7 +89,9 @@ served.
 | `js/analytics.js` | The only caller of GoatCounter: guarded `trackView`/`trackEvent`, and the demo switch. |
 | `js/links.js` | Finding links in a block's source and splicing one without touching the rest. Pure. |
 | `js/paste.js` | Blockquote-aware paste: gives every pasted line the quote marker it is pasted into. Pure. |
+| `js/share.js` | Share format choice, published-PDF records, share-sheet helpers, viewable links. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
+| `js/pdf.js` | A small Markdown-to-PDF renderer with no PDF library: A4, base-14 fonts, headings, lists, code, tables, links. Pure. |
 | `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
 | `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
@@ -95,6 +104,7 @@ served.
 | `publish.sh` | Version, tag, push `main` and the site whitelist to `public`. |
 | `test/` | `node --test` suites for the pure modules. |
 | `report/` | The GoatCounter report script and its README. Development only; never served. |
+| `pdf-poc/` | A standalone UI for the PDF renderer in `js/pdf.js`. Development only; not part of the app or the published site. |
 | `docs/index.html` | The user guide, published with the app; the in-app `?` links to it. |
 | `REQUIREMENTS.md` | Scope, in priority order. The "what". |
 | `PLAN.md` | The phased plan: decisions, milestones, acceptance criteria, risks. |
@@ -219,10 +229,12 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
   - **A shared link is public.** `sharing/create_shared_link_with_settings` on a
     file inside the app folder is allowed (`allow_app_folder_app` is set on the
     route; the "not supported" rule is about shared *folders*). The recipient
-    needs no Dropbox account and no Taisce install, and Dropbox previews `.md`
-    as plain text, so they see the Markdown source. Share links, never files:
-    Chromium's share sheet whitelist excludes `.md` and `text/markdown`, and it
-    fails *after* `canShare()` has already said yes.
+    needs no Dropbox account and no Taisce install. Dropbox previews `.md` as
+    plain text, so Share defaults to a generated `.pdf` beside the note and
+    links to that; Settings can share the `.md` itself instead. Republishing
+    overwrites the same PDF path, so Dropbox keeps the same shared link. Share
+    links, never files: Chromium's share sheet whitelist excludes `.md` and
+    `text/markdown`, and it fails *after* `canShare()` has already said yes.
   - Paths: `""` is the root; paths have no leading slash. Use `path_lower` for
     comparisons and `path_display` only for display — Dropbox paths are not
     case-sensitive.
@@ -325,6 +337,9 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
   - A visit is **two pageviews**: `/` and `/v<release>`, the second tagged from
     the `meta[name="app-version"]` that `publish.sh` stamps. The report reads
     releases from the second only.
+  - Choosing a share format is counted as `share-format-pdf` or
+    `share-format-markdown`, only when the choice changes; both slugs are in the
+    report's settings group.
   - Blocking `taisce.goatcounter.com` must remain harmless: no feature and no
     layout may depend on the counter loading.
 - **Docs**: <https://www.goatcounter.com/> · <https://www.goatcounter.com/api.html>
@@ -442,6 +457,17 @@ Rules:
   `assets/`; those references keep working (resolution follows the reference,
   not the folder name) and that folder stays visible until it is renamed in
   Dropbox.
+- **A PDF share is updated in place, never re-created.** The PDF is
+  `<note>.pdf` beside the note, so overwriting it on every share keeps the
+  Dropbox link valid; never add a timestamp or a new path, which would mint a
+  new URL. The Share button's dot compares a fingerprint of the note with the
+  text last published in this browser (`js/share.js`), so it is a cue, not a
+  source of truth: a share made on another device is invisible here. Markdown
+  mode needs no such record because Dropbox serves the note as edited.
+  **Deleting a note deletes its PDF with it**, after the note itself is gone:
+  a PDF without its note is an orphan behind a public link. A note that was
+  never shared has no PDF, and `path/not_found` from that delete is the normal
+  case, not a failure to report.
 - **The system back button and the back arrow are one history traversal.** The
   app is a single document with no address of its own, so the Android back
   gesture only has somewhere to go if the screens are history entries:
@@ -625,3 +651,4 @@ misrepresents who wrote the work.
 
 This file was written with an AI coding assistant.
 Assisted-by: GitHub Copilot (DeepSeek V4 Flash)
+Assisted-by: Claude Code (deepseek-flash)

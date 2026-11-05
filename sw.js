@@ -19,6 +19,7 @@ const SHELL = [
   './js/mock.js',
   './js/paste.js',
   './js/paths.js',
+  './js/pdf.js',
   './js/recents.js',
   './js/save.js',
   './js/share.js',

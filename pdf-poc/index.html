@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Markdown to PDF — Taisce POC</title>
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<main class="panel">
+  <header class="intro">
+    <p class="eyebrow">Taisce proof of concept</p>
+    <h1>Markdown to PDF</h1>
+    <p class="lede">Drop a Markdown note and get an A4 PDF. The file is read,
+      laid out and written in this tab; it is never uploaded anywhere.</p>
+  </header>
+
+  <section id="drop" class="drop" aria-labelledby="drop-title">
+    <input id="file" type="file" accept=".md,.markdown,text/markdown,text/plain" hidden>
+    <div class="drop-art" aria-hidden="true">↓</div>
+    <h2 id="drop-title">Drop a Markdown file here</h2>
+    <p class="hint">or</p>
+    <button id="pick" class="primary" type="button">Choose a file</button>
+    <p class="fineprint">Markdown only. Nothing leaves this browser tab.</p>
+  </section>
+
+  <section id="result" class="result" hidden aria-live="polite">
+    <div class="result-head">
+      <span id="file-name" class="file-name"></span>
+      <span id="file-size" class="file-size"></span>
+    </div>
+    <p id="stats" class="stats"></p>
+    <a id="download" class="primary download" download>Download PDF</a>
+  </section>
+
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+  <section class="notes">
+    <h2>What it does</h2>
+    <ul>
+      <li>Headings, paragraphs, bold and italic, inline and fenced code.</li>
+      <li>Bullet, numbered and task lists; blockquotes and horizontal rules.</li>
+      <li>Links become clickable PDF annotations; simple tables become rows.</li>
+      <li>Images become their alt text rather than a bitmap.</li>
+    </ul>
+    <p class="fineprint">It writes PDF objects directly, using the fonts every
+      reader already has. No canvas, no screenshot, no PDF library — what you
+      drop is what gets measured and laid out once.</p>
+  </section>
+
+  <p class="back"><a href="../">← Back to Taisce</a></p>
+</main>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

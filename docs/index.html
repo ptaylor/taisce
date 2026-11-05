@@ -168,18 +168,28 @@
       question counts them first. Only the pictures written in that note are
       removed — a picture belongs to one note, because a pasted one is given a
       timestamped name of its own — so a shared <code>_assets</code> folder is
-      safe and other notes keep their pictures.</p>
+      safe and other notes keep their pictures. Any <strong>PDF copy</strong>
+      made for sharing is deleted too, so its link stops working.</p>
 
+    <!-- Updated with Claude Code (deepseek-flash). -->
     <h2>Sharing a file</h2>
-    <p>The share button in the corner of a note asks Dropbox for a
-      <strong>shared link</strong> to that file and offers it two ways: copy it,
-      or hand it to your phone's own share sheet. The link is read-only, and it
-      is public — anyone who has it can read the note, without a Dropbox account
-      and without Taisce. Dropbox shows them the Markdown text as written, not
-      the rendered page.</p>
-    <p>Sharing does not copy the file or change it. The same link is reused each
-      time you share the same note, and revoking it in Dropbox — or deleting the
-      file — stops it working.</p>
+    <p><strong>Settings → Share files as</strong> chooses the format. <strong>PDF</strong>
+      (the default) makes a copy beside the note, uploads it, and creates a
+      read-only <strong>shared link</strong> to that PDF; Dropbox previews it in
+      the browser, so the recipient sees a typeset page rather than the Markdown
+      source. <strong>Markdown</strong> shares the note itself, which is always
+      current but opens as plain text. Either way the link can be copied or
+      handed to your phone's own share sheet. It is public: anyone who has it
+      can read what was shared, without a Dropbox account and without Taisce.</p>
+    <p>A PDF is regenerated and replaced each time you share, so republishing
+      keeps the same Dropbox link. After a PDF share, a dot on the Share button
+      means the note has changed since the PDF was last published — share again
+      to update it. The dot follows edits made in this browser; a share made on
+      another device is not known here. The PDF is text-only (pictures appear as
+      their alt text) and is not listed as a note.</p>
+    <p>Revoking the link in Dropbox — or deleting the shared file — stops it
+      working. Deleting the note also deletes the PDF copy made from it, so the
+      link does not outlive the note.</p>
 
     <h2>Disconnecting</h2>
     <p><strong>Settings → Disconnect</strong> asks Dropbox to revoke the app’s

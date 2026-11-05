@@ -30,12 +30,16 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
   when you opened it — later edits do not touch it — and it is an ordinary file
   in your Dropbox account. Taisce does not list it as a note.
 - **Delete a note** with the trash can in its corner. It asks first — naming the
-  file, and how many pictures it carries — then moves both the note and the
-  pictures it links to into the Dropbox trash, where you can restore them at
-  dropbox.com. Pictures belonging to other notes are left alone.
-- **Share a note** with the button in its corner: it creates a read-only Dropbox
-  link, copies it, or hands it to your phone's share sheet. The link is public,
-  so anyone who has it can read that file.
+  file, and how many pictures it carries — then moves the note, the pictures it
+  links to and any PDF copy made for sharing into the Dropbox trash, where you
+  can restore them at dropbox.com. Pictures belonging to other notes are left
+  alone.
+- **Share a note** with the button in its corner. Settings chooses the format:
+  **PDF** (the default) makes a copy beside the note and shares a rendered page;
+  **Markdown** shares the note itself. The link is read-only and public, so
+  anyone who has it can read what was shared. After a PDF share, a dot on the
+  button means the note has changed since it was published — share again to
+  update the PDF behind the same link.
 - **Tap a task item** in the rendered file to check or uncheck it. The file is
   updated and saved exactly like any other edit.
 - **Tap a link** to change the words, change the address, copy it, open it in a
@@ -192,3 +196,4 @@ Taisce is not affiliated with or sponsored by Dropbox, Inc. "Dropbox" is a trade
 
 This file was written with an AI coding assistant.
 Assisted-by: GitHub Copilot (DeepSeek V4 Flash)
+Assisted-by: Claude Code (deepseek-flash)
