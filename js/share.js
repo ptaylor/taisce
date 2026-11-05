@@ -1,7 +1,8 @@
 // Sharing a note is a Dropbox link. There are two formats, chosen in Settings:
 //
-//   PDF       a generated copy beside the note. It has to be republished after
-//             the note changes; the file path, and so the link, stays the same.
+//   PDF       a generated copy beside the note. It is replaced in the background
+//             after the note changes; the file path, and so the link, stays the
+//             same.
 //   Markdown  the note itself, always current because Dropbox serves the file.
 //
 // A Dropbox shared link is the one thing a recipient needs no account for: the
@@ -39,6 +40,16 @@ export function shareFingerprint(text) {
     mix = Math.imul(mix ^ code, 0x85ebca6b);
   }
   return `${value.length.toString(36)}-${(fnv >>> 0).toString(36)}-${(mix >>> 0).toString(36)}`;
+}
+
+/**
+ * The key a note's published record is stored under: its lowercase path.
+ * Records predate the app keeping Dropbox's display case, and Dropbox is not
+ * case-sensitive, so `/My Trip.md` and `/my trip.md` are one note — and one
+ * record — whichever spelling the app is holding.
+ */
+export function shareKey(path) {
+  return String(path || '').toLowerCase();
 }
 
 /** Parse the per-browser record of PDFs this device has published. */

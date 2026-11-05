@@ -43,6 +43,7 @@ import {
   SHARE_RECORDS_KEY,
   shareFormatChoice,
   shareFingerprint,
+  shareKey,
   sharePayload,
   viewableLink,
 } from './js/share.js';
@@ -171,7 +172,7 @@ function updateShareButton(text = editor.text()) {
   const stale =
     state.shareFormat === 'pdf' &&
     Boolean(state.file) &&
-    pdfNeedsPublish(state.sharedPdfs, state.file.path, text);
+    pdfNeedsPublish(state.sharedPdfs, shareKey(state.file.path), text);
   setShareButtonStale(stale);
 }
 
@@ -692,7 +693,7 @@ async function submitNewFile(event) {
     state.index = null;
     $('#new-file').close();
     await loadList(state.dir);
-    const created = state.entries.find((entry) => entry.path === path.toLowerCase()) || {
+    const created = state.entries.find((entry) => entry.path.toLowerCase() === path.toLowerCase()) || {
       name: name.replace(/\.md$/i, ''),
       path,
       type: 'file',
@@ -734,7 +735,7 @@ function showRename() {
 // share made on another device is not in localStorage here.
 async function noteIsShared(file) {
   if (
-    state.sharedPdfs[file.path] ||
+    state.sharedPdfs[shareKey(file.path)] ||
     sharedLinks.has(file.path) ||
     sharedLinks.has(pdfPathFor(file.path))
   ) {
@@ -781,10 +782,10 @@ function moveShareState(oldPath, nextPath, pdfMoved) {
   if (pdfMoved && pdfLink) sharedLinks.set(nextPdf, pdfLink);
 
   const stored = { ...storedShareRecords(), ...state.sharedPdfs };
-  const record = stored[oldPath];
+  const record = stored[shareKey(oldPath)];
   if (!record) return;
-  let next = forgetPdfShare(stored, oldPath);
-  if (pdfMoved) next = recordPdfShare(next, nextPath, record.hash, record.at);
+  let next = forgetPdfShare(stored, shareKey(oldPath));
+  if (pdfMoved) next = recordPdfShare(next, shareKey(nextPath), record.hash, record.at);
   state.sharedPdfs = next;
   saveShareRecords({ replace: true });
 }
@@ -1027,13 +1028,13 @@ function openShare() {
 async function shareNote(file, run) {
   const format = state.shareFormat;
   const republishing =
-    format === 'pdf' && pdfNeedsPublish(state.sharedPdfs, file.path, editor.text());
+    format === 'pdf' && pdfNeedsPublish(state.sharedPdfs, shareKey(file.path), editor.text());
   // A PDF recorded on this device, or any link already fetched this session,
   // means the same link will come back — so the sheet says so rather than
   // implying a brand-new share.
   const resharing =
     format === 'pdf'
-      ? Boolean(state.sharedPdfs[file.path]) || sharedLinks.has(pdfPathFor(file.path))
+      ? Boolean(state.sharedPdfs[shareKey(file.path)]) || sharedLinks.has(pdfPathFor(file.path))
       : sharedLinks.has(file.path);
 
   resetShare();
@@ -1110,7 +1111,7 @@ async function shareNote(file, run) {
     if (format === 'pdf') {
       // Only now is the PDF actually behind a link. Record the text that was
       // published, so the Share button can say when it has fallen behind.
-      state.sharedPdfs = recordPdfShare(state.sharedPdfs, file.path, shareFingerprint(text));
+      state.sharedPdfs = recordPdfShare(state.sharedPdfs, shareKey(file.path), shareFingerprint(text));
       saveShareRecords();
       // The reader may have moved to another note while the upload ran; that
       // note's button is the one on screen now, so recompute from its text.
@@ -1214,7 +1215,7 @@ async function deleteFile() {
     sharedLinks.delete(pdfPathFor(file.path));
     state.sharedPdfs = forgetPdfShare(
       { ...storedShareRecords(), ...state.sharedPdfs },
-      file.path,
+      shareKey(file.path),
     );
     saveShareRecords({ replace: true });
     setShareButtonStale(false);

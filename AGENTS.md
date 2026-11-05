@@ -235,9 +235,13 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     overwrites the same PDF path, so Dropbox keeps the same shared link. Share
     links, never files: Chromium's share sheet whitelist excludes `.md` and
     `text/markdown`, and it fails *after* `canShare()` has already said yes.
-  - Paths: `""` is the root; paths have no leading slash. Use `path_lower` for
-    comparisons and `path_display` only for display — Dropbox paths are not
-    case-sensitive.
+  - Paths: `""` is the root; paths have no leading slash. The provider hands the
+    app `path_display`, not `path_lower`: the note's name, the `.md.bak` beside
+    it, the `.pdf` made from it and the crumbs above it are all derived from
+    that path, and taking `path_lower` lowercased a name the reader had typed
+    with capitals. Dropbox paths are not case-sensitive, so compare them without
+    case — share records are keyed by `shareKey(path)` (the lowercase form),
+    where records written before this change still live.
   - `list_folder` pages: follow `cursor` while `has_more` is true, or folders
     will silently truncate.
   - Uploads replace the whole file — this app is read-whole-file / edit /
@@ -450,6 +454,14 @@ Rules:
     commit, in one line, so the next person knows it was a decision.
   Removing a feature retires its events by the same rule. The vocabulary is
   documented under **GoatCounter** below and must match the code exactly.
+- **A name keeps the case it was typed in.** A note called `My Trip.md` has a
+  backup called `My Trip.md.bak`, a shared copy called `My Trip.pdf`, and crumbs
+  that read `My Trip` — one name in several places. The provider therefore
+  returns Dropbox's `path_display`, and every derived path is built from it;
+  `path_lower` is only for comparisons, and share records — which predate this
+  rule and are keyed by the lowercase path — are reached through `shareKey`.
+  Never derive a visible name, a backup path or a PDF path from a lowercased
+  one: the reader sees the app give their capitals back to them in lower case.
 - **A leading underscore means "not a note".** Pasted pictures go in `_assets`
   beside the note, and anything the reader wants out of the way can be hidden
   the same way. Such names are never listed, never counted in the folder
