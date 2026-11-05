@@ -100,7 +100,12 @@ export class DropboxProvider {
       .filter((entry) => entry['.tag'] === 'folder' || (entry['.tag'] === 'file' && /\.md$/i.test(entry.name)))
       .map((entry) => ({
         name: entry['.tag'] === 'folder' ? entry.name : entry.name.replace(/\.md$/i, ''),
-        path: entry.path_lower,
+        // `path_display`, not `path_lower`: the note's name, the backup beside
+        // it and the PDF made from it all follow this path, and `path_lower`
+        // would quietly lowercase a name the reader typed with capitals.
+        // Dropbox resolves display paths case-insensitively, and everything
+        // that compares paths here does so without case.
+        path: entry.path_display || entry.path_lower,
         type: entry['.tag'] === 'folder' ? 'folder' : 'file',
       }))
       .sort((a, b) => {
@@ -122,7 +127,7 @@ export class DropboxProvider {
       .filter((entry) => entry['.tag'] === 'file' && /\.md$/i.test(entry.name))
       .map((entry) => ({
         name: entry.name.replace(/\.md$/i, ''),
-        path: entry.path_lower,
+        path: entry.path_display || entry.path_lower,
         modified: Date.parse(entry.server_modified) || 0,
       }));
   }
@@ -198,7 +203,7 @@ export class DropboxProvider {
       blob,
     );
     const meta = await res.json();
-    return { path: meta.path_lower, rev: meta.rev };
+    return { path: meta.path_display || meta.path_lower, rev: meta.rev };
   }
 
   async readBlob(path) {
@@ -208,7 +213,7 @@ export class DropboxProvider {
 
   async createFolder(path) {
     const result = await this.rpc('files/create_folder_v2', { path, autorename: false });
-    return { path: result.metadata.path_lower };
+    return { path: result.metadata.path_display || result.metadata.path_lower };
   }
 
   /**
@@ -225,7 +230,7 @@ export class DropboxProvider {
       to_path: to,
       autorename: false,
     });
-    return { path: result.metadata.path_lower, rev: result.metadata.rev };
+    return { path: result.metadata.path_display || result.metadata.path_lower, rev: result.metadata.rev };
   }
 
   /**
