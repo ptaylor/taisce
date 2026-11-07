@@ -6,6 +6,13 @@ import { renderMarkdown } from './markdown.js';
 import { trackEvent } from './analytics.js';
 import { findImageRefs, removeImageRef } from './images.js';
 import { quotePaste } from './paste.js';
+import {
+  INLINE_FORMATS,
+  closeOfFormat,
+  formatSelection,
+  shortcutFormat,
+  startFormat,
+} from './format.js';
 
 const LIST_PREFIX = /^(\s*)([-*+]|\d{1,9}[.)])\s+(\[[ xX]\]\s+)?/;
 
@@ -223,6 +230,9 @@ export function createEditor({
     const commit = () => {
       closeMenu();
       if (editing !== index) return;
+      // Leaving the block ends a typing format. An empty pair was never text:
+      // remove it rather than saving `****` into the note.
+      if (activeFormat) endFormat({ removeEmpty: true });
       if (span.source !== before) {
         history.record({ start: span.start, before, after: span.source });
         notifyHistory();
@@ -318,6 +328,97 @@ export function createEditor({
       textarea.focus();
     }
 
+    // A format started with nothing selected stays open while the caret is
+    // between its two halves: typing goes before the closing half, and it ends
+    // when the same key is pressed again, when Enter is pressed, or when the
+    // block is left. Nothing here is a toolbar; it is still source text.
+    let activeFormat = null;
+
+    function replaceAll(next, start, end = start) {
+      if (next === textarea.value) return;
+      textarea.setRangeText(next, 0, textarea.value.length, 'preserve');
+      textarea.setSelectionRange(start, end);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function activeSpan() {
+      if (!activeFormat) return null;
+      const spec = INLINE_FORMATS[activeFormat.name];
+      const closeStart = closeOfFormat(textarea.value, activeFormat.openStart, activeFormat.name);
+      if (closeStart === -1) {
+        activeFormat = null;
+        return null;
+      }
+      return { openEnd: activeFormat.openStart + spec.open.length, closeStart };
+    }
+
+    // The caret leaving the pair means the format is over: returning to it
+    // must not reopen the format behind the reader's back.
+    function caretInFormat() {
+      const span = activeSpan();
+      if (!span) return false;
+      const { selectionStart, selectionEnd } = textarea;
+      if (selectionStart !== selectionEnd) {
+        activeFormat = null;
+        return false;
+      }
+      if (selectionStart < span.openEnd || selectionStart > span.closeStart) {
+        activeFormat = null;
+        return false;
+      }
+      return true;
+    }
+
+    function endFormat({ removeEmpty = false } = {}) {
+      if (!activeFormat) return;
+      const { name, openStart } = activeFormat;
+      const spec = INLINE_FORMATS[name];
+      const closeStart = closeOfFormat(textarea.value, openStart, name);
+      activeFormat = null;
+      if (closeStart === -1) return;
+
+      const after = closeStart + spec.close.length;
+      if (removeEmpty && closeStart === openStart + spec.open.length) {
+        // Nothing was typed: leave no stray pair in the file.
+        replaceAll(textarea.value.slice(0, openStart) + textarea.value.slice(after), openStart);
+        return;
+      }
+      textarea.setSelectionRange(after, after);
+    }
+
+    function applyFormat(name) {
+      closeMenu();
+
+      // A selection is wrapped where it sits. Pressing the same key on text
+      // that already carries the format takes it off again.
+      if (textarea.selectionStart !== textarea.selectionEnd) {
+        activeFormat = null;
+        const { text: next, start, end } = formatSelection(
+          textarea.value,
+          textarea.selectionStart,
+          textarea.selectionEnd,
+          name,
+        );
+        replaceAll(next, start, end);
+        return;
+      }
+
+      if (activeFormat?.name === name) {
+        endFormat({ removeEmpty: true });
+        return;
+      }
+
+      // Switching formats finishes the open one first, so the pairs do not
+      // nest by accident.
+      if (activeFormat) endFormat({ removeEmpty: true });
+
+      const at = textarea.selectionStart;
+      const started = startFormat(textarea.value, at, name);
+      if (!started) return;
+      activeFormat = { name, openStart: at };
+      replaceAll(started.text, started.caret);
+    }
+
     textarea.addEventListener('input', () => {
       const next = applyBlockEdit(text, span, textarea.value);
       if (next === text) return;
@@ -331,7 +432,10 @@ export function createEditor({
       updateMenu();
     });
 
-    textarea.addEventListener('click', updateMenu);
+    textarea.addEventListener('click', () => {
+      if (activeFormat) caretInFormat();
+      updateMenu();
+    });
     // Pasting an address over a selection is how a link is usually made: the
     // words are already there and the URL is on the clipboard.
     textarea.addEventListener('paste', (event) => {
@@ -360,12 +464,23 @@ export function createEditor({
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     });
     textarea.addEventListener('keyup', (event) => {
+      if (activeFormat) caretInFormat();
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) updateMenu();
     });
 
     textarea.addEventListener('blur', commit);
 
     textarea.addEventListener('keydown', (event) => {
+      // Markdown in a fenced code block is literal text, not formatting.
+      if (!event.isComposing && block.type !== 'code') {
+        const format = shortcutFormat(event);
+        if (format) {
+          event.preventDefault();
+          applyFormat(format);
+          return;
+        }
+      }
+
       if (menu) {
         if (event.key === 'ArrowDown') {
           event.preventDefault();
@@ -397,6 +512,12 @@ export function createEditor({
         event.preventDefault();
         textarea.blur();
         return;
+      }
+
+      // A line break ends a typing format; the closing half stays on the line
+      // it was typed on, and the next line starts unformatted.
+      if (event.key === 'Enter' && !event.isComposing && activeFormat) {
+        endFormat({ removeEmpty: true });
       }
 
       if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {

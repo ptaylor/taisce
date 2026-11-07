@@ -112,6 +112,8 @@
         <tr><td><code># Heading</code></td><td>A top-level heading (<code>##</code> for the next level down)</td></tr>
         <tr><td><code>**bold**</code></td><td><strong>bold</strong></td></tr>
         <tr><td><code>*italic*</code></td><td><em>italic</em></td></tr>
+        <tr><td><code>&lt;u&gt;underlined&lt;/u&gt;</code></td><td><u>underlined</u></td></tr>
+        <tr><td><code>~~struck~~</code></td><td><del>struck</del></td></tr>
         <tr><td><code>`code`</code></td><td>inline code</td></tr>
         <tr><td><code>```js</code> … <code>```</code></td><td>a code block</td></tr>
         <tr><td><code>- item</code></td><td>a bullet list</td></tr>
@@ -121,6 +123,17 @@
         <tr><td><code>&gt; quote</code></td><td>a blockquote</td></tr>
       </tbody>
     </table>
+
+    <p>While a block is open for editing, <code>Cmd/Ctrl+B</code> bolds the
+      selected words, <code>Cmd/Ctrl+I</code> italicises them,
+      <code>Cmd/Ctrl+U</code> underlines them and
+      <code>Shift+Cmd/Ctrl+X</code> strikes them through. With words selected,
+      pressing the same key again takes the formatting off. With nothing
+      selected the key opens an
+      empty pair and leaves the caret between the halves: type inside it, then
+      press the key again or press Enter to stop. Underline writes
+      <code>&lt;u&gt;…&lt;/u&gt;</code>, because Markdown has no underline of
+      its own.</p>
 
     <h2>Files, folders and finding things</h2>
     <ul>

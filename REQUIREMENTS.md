@@ -43,6 +43,11 @@ Auto save files - there must be no SAVE/CANCEL button.
 
 Add an ability to undo edits up to a configurable limit (P4)
 
+Inline formatting must be reachable from the keyboard while a block is being
+edited, without a toolbar: a shortcut wraps the selection, or with nothing
+selected opens the delimiters and leaves the caret between them so typing
+continues in that format until the key is pressed again or the edit ends.
+
 Openening a file must render it using the most common markdown featuers (https://www.markdownlang.com/).   The following must be suported
 
 * Headings

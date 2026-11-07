@@ -19,6 +19,12 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Tap a block to edit it.** The Markdown you type is the formatting — `## ` at
   the start of a line makes a heading, `**bold**`, `` `code` ``, `- ` a list.
   There is no toolbar, because the syntax already is one.
+- **Format from the keyboard.** With a block open, `Cmd/Ctrl+B` bolds the
+  selection, `Cmd/Ctrl+I` italicises, `Cmd/Ctrl+U` underlines and
+  `Shift+Cmd/Ctrl+X` strikes through; with words selected, the same key again
+  takes the format off. With nothing selected the key opens an empty pair and leaves the caret
+  between the halves, so you type inside the format until you press the key
+  again or press Enter. Underline writes `<u>…</u>`, since Markdown has none.
 - **Leave the block and it renders again.** A block shows its source only while
   it has the caret. Pasting several lines into a `> quote` keeps every pasted
   line quoted instead of ending the quote after the first one.

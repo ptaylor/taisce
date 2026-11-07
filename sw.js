@@ -12,6 +12,7 @@ const SHELL = [
   './js/dropbox.js',
   './js/editor.js',
   './js/errors.js',
+  './js/format.js',
   './js/history.js',
   './js/images.js',
   './js/links.js',

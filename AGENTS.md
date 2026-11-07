@@ -18,7 +18,8 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 **All four phases implemented and published.** Sign-in (PKCE), folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
-editing with autosave, interactive task lists, new files and folders, renaming,
+editing with autosave, keyboard formatting (bold, italic, underline,
+strikethrough), interactive task lists, new files and folders, renaming,
 recent files, filename search, undo/redo with a configurable depth, pasted
 images, background `.bak` backups when a note opens, sharing as PDF or Markdown
 with background republishing of shared PDFs, the `docs/` guide, the icon set and
@@ -94,7 +95,8 @@ served.
 | `js/share.js` | Share format choice, published-PDF records, share-sheet helpers, viewable links. Pure. |
 | `js/markdown.js` | `marked` + `DOMPurify` wrapper. |
 | `js/pdf.js` | A small Markdown-to-PDF renderer with no PDF library: A4, base-14 fonts, headings, lists, code, tables, links. Pure. |
-| `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor. |
+| `js/editor.js` | Rendered blocks, tap-to-edit, Enter continuation, task ticking, the link editor, the keyboard formatting shortcuts. |
+| `js/format.js` | Inline formatting: the delimiters, toggling them on and off, and where the caret lands. Pure. |
 | `js/save.js` | Debounced, serialised autosave with a `rev` conflict check. |
 | `js/mock.js` | The `?mock=1` backend, same contract as Dropbox. |
 | `js/ui.js`, `js/errors.js` | Small shared helpers. |
