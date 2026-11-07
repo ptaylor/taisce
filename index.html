@@ -25,7 +25,7 @@
 <script data-goatcounter="https://taisce.goatcounter.com/count"
         data-goatcounter-settings='{"no_onload": true}'
         src="./vendor/count.js"></script>
-<meta name="app-version" content="v0.31">
+<meta name="app-version" content="v0.32">
 </head>
 <body>
 
@@ -318,7 +318,9 @@
   <p>Tap any paragraph to edit it. The Markdown you type is the formatting:</p>
   <ul>
     <li><code>## A heading</code> — a heading</li>
-    <li><code>**bold**</code>, <code>*italic*</code>, <code>`code`</code></li>
+    <li><code>**bold**</code>, <code>*italic*</code>,
+      <code>&lt;u&gt;underlined&lt;/u&gt;</code>, <code>~~struck~~</code>,
+      <code>`code`</code></li>
     <li><code>- item</code> — a list; <code>- [ ] item</code> — a task you can tick</li>
     <li><code>https://example.com</code> on its own is a link too, and so is an
       email address — no brackets needed.</li>
@@ -326,6 +328,14 @@
       change where it points, copy it or remove it. To link words you have
       already written, select them and paste the address over them.</li>
   </ul>
+  <p>With a block open, select words and press <code>⌘B</code>/<code>Ctrl+B</code>
+    for bold, <code>⌘I</code>/<code>Ctrl+I</code> for italic,
+    <code>⌘U</code>/<code>Ctrl+U</code> for underline, or
+    <code>⇧⌘X</code>/<code>Ctrl+Shift+X</code> for strikethrough. With nothing
+    selected the key puts an empty pair in and leaves the caret between the
+    halves, so you type inside the format; press the key again, or press Enter,
+    to stop. Markdown has no underline of its own, so underline writes
+    <code>&lt;u&gt;…&lt;/u&gt;</code>.</p>
   <p>There is no Save button: edits save by themselves, about a second after you stop typing. Leave a block to see it rendered again.</p>
   <p>Type <code>/</code> at the start of a line for templates — task list, code block, table, quote and more. Keep typing to filter, then Enter.</p>
   <h3>Undo and pictures</h3>
