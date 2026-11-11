@@ -1,4 +1,4 @@
-const CACHE = 'taisce-v0.32';
+const CACHE = 'taisce-v0.33';
 const SHELL = [
   './',
   './index.html',
