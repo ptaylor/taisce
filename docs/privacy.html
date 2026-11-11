@@ -60,8 +60,11 @@
     <ul>
       <li><strong>In your browser</strong>: a Dropbox refresh token and a
         short-lived access token in <code>localStorage</code>, plus preferences
-        (theme, how many recent files to show, how many undo steps to keep, and
-        whether to share as PDF or Markdown). In PDF mode it also keeps a small
+        (theme, how many recent files to show, how many undo steps to keep,
+        how long a stored sign-in may live, and whether to share as PDF or
+        Markdown). The tokens are deleted, and the grant is offered to Dropbox
+        for revocation, after that limit — 180 days by default. In PDF mode it
+        also keeps a small
         per-note record of what was shared — the note's path and a fingerprint
         of its text, never the text itself — so the app can tell you when the
         PDF needs republishing. No note content is kept in the browser once you

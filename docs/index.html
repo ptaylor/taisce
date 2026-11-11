@@ -155,9 +155,18 @@
 
     <h2>Theme and settings</h2>
     <p><strong>Settings</strong> holds the number of recent files, the undo
-      depth, and the theme. The theme can follow the device
-      (<strong>System</strong>) or stay <strong>Dark</strong> or
-      <strong>Light</strong>; the choice is remembered on this device.</p>
+      depth, how long a stored sign-in may live on this device, and the theme.
+      The theme can follow the device (<strong>System</strong>) or stay
+      <strong>Dark</strong> or <strong>Light</strong>; the choice is remembered
+      on this device.</p>
+    <p><strong>Days before a stored sign-in is forgotten</strong> is 180 by
+      default. When the limit is reached the app deletes the Dropbox tokens from
+      this browser, asks Dropbox to revoke the grant, and returns to the connect
+      screen. A shorter limit than the age of the current sign-in signs you out
+      when you save it, after asking; unsaved edits would be lost, so save them
+      first. A sign-in stored before this limit existed has no recorded date and
+      is treated as expired, which is why the first launch after an upgrade may
+      ask you to connect again.</p>
 
     <h2>Install it like an app</h2>
     <p>Taisce is a PWA. Served over HTTPS it installs to a home screen and keeps

@@ -104,6 +104,11 @@ An app called **Taisce** has been created with the following deatils;
 
 Let me know if additional settings are needed and what Oauth 2 redirect URL must be added to match the deployment details in the previous section.
 
+Stored Dropbox tokens are disabled after a configurable number of days (default
+180): the app forgets them, asks Dropbox to revoke the grant, and asks the
+reader to connect again. The limit is set in Settings and remembered on the
+device.
+
 
 ## Priorities
 

@@ -78,6 +78,11 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Disconnect** lives in **Settings**, under the account it belongs to. It asks
   Dropbox to revoke the app’s access and forgets it on the device; your files are
   never touched.
+- **A stored sign-in expires.** Settings sets how many days a sign-in may stay on
+  the device (180 by default). At the limit the tokens are deleted, the grant is
+  revoked with Dropbox, and you connect again — so a copy taken from this
+  browser cannot be used indefinitely. Lowering the limit below the age of the
+  current sign-in signs you out at once, after asking.
 - **Light, dark or system theme**, chosen in **Settings** and remembered on the
   device.
 
@@ -187,6 +192,12 @@ relative. A leading `/` works on `localhost` and breaks the deployed site.
   counter is a vendored copy, not `gc.zgo.at`), `script-src` stays `'self'`, and
   everything rendered from a file is sanitised.
 - Disconnecting revokes the token with Dropbox as well as forgetting it locally.
+- A stored sign-in is forgotten after 180 days by default (Settings can shorten
+  or lengthen that). The app offers the grant to Dropbox for revocation at the
+  same time, so the long-lived refresh token cannot stay usable indefinitely
+  after a copy has left this browser. A sign-in saved before the limit existed
+  has no recorded date, so the first launch after upgrading asks you to connect
+  again.
 - Worth knowing: `ptaylor.github.io` is one origin for every project site on
   this account, and browser storage is per origin. Another project on the same
   domain can read this app's stored token; a custom domain is the only real

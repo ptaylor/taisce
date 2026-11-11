@@ -62,6 +62,7 @@
       <h1>View and edit Markdown files in your Dropbox account</h1>
       <p>Taisce allows you to easily create, view and edit Markdown files in your
         Dropbox account. It cannot see any other files in your account.</p>
+      <p id="auth-note" class="hint auth-note" role="status" hidden></p>
       <button id="connect" class="primary" type="button">Connect to Dropbox</button>
       <div id="setup-note" hidden>
         <p><strong>No Dropbox app key configured yet.</strong></p>
@@ -247,6 +248,13 @@
       <span>Undo steps kept per note</span>
       <input id="undo-limit" type="number" inputmode="numeric" min="1" max="200" step="1">
     </label>
+    <label class="field">
+      <span>Days before a stored sign-in is forgotten</span>
+      <input id="token-days" type="number" inputmode="numeric" min="1" max="3650" step="1">
+    </label>
+    <p class="where">When the limit is reached the Dropbox tokens on this device
+      are deleted and you connect again. Setting it below the age of the current
+      sign-in signs you out now.</p>
     <p class="where">Saved on this device only.</p>
     <menu>
       <button id="settings-close" class="link" type="button">Close</button>

@@ -16,7 +16,8 @@ covers **how** the repository is worked on. When the two disagree about scope,
 
 ## Status
 
-**All four phases implemented and published.** Sign-in (PKCE), folders with
+**All four phases implemented and published.** Sign-in (PKCE) with a
+configurable age limit on the stored tokens, folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, keyboard formatting (bold, italic, underline,
 strikethrough), interactive task lists, new files and folders, renaming,
@@ -78,7 +79,8 @@ served.
 | `index.html` | The app shell: header, three screens, the new-file / confirm / help dialogs. |
 | `app.js` | Wiring only: boot, screens, list, open, save engine hook-up. |
 | `styles.css` | Design tokens (`--bg`, `--accent`, …) and layout. Light and dark. |
-| `js/auth.js` | PKCE, the token store, refresh, sign-out. |
+| `js/auth.js` | PKCE, the token store, refresh, sign-out, and the age limit on a stored sign-in. |
+| `js/tokens.js` | The token-age setting and the rule for when a stored sign-in has expired. Pure. |
 | `js/backup.js` | The background `.bak` writer: one write per note at a time, metadata before delete, failures only logged. |
 | `js/dropbox.js` | The Dropbox API client: list (folders + files), read, metadata, write, PDF upload, create, create-folder, remove, share link, revoke. |
 | `js/blocks.js` | Markdown → source-preserving blocks, task toggling, conflict merge. Pure. |
@@ -221,6 +223,17 @@ There is no `.github/workflows/`: Pages deploys the published branch itself.
     authorisation.
   - Access tokens are short-lived. Request `token_access_type=offline` to get a
     refresh token, and refresh on `401` rather than prompting the user again.
+  - **A stored sign-in has a maximum age.** `js/tokens.js` holds the rule and
+    `taisce.tokenDays` the setting (default 180, capped at 3650 so a typo cannot
+    mean "never"). The clock starts when the refresh token is stored at sign-in
+    and is **not** moved by an access-token refresh or rotation, or a device in
+    daily use would never reach the limit. `sessionState`/`retireOldTokens` in
+    `js/auth.js` enforce it on every read and refresh: both tokens and the saved
+    date are deleted, the grant is offered to `auth/token/revoke` (best effort —
+    offline expiry still signs out), and the reader is asked to connect again. A
+    sign-in saved before the timestamp existed has no proof of age and is
+    treated as expired. Lowering the setting below the current sign-in's age
+    retires it immediately, after a confirmation.
   - Ask for the least scope that works, because Dropbox reviews exactly this at
     production approval. The app needs `files.metadata.read` (listing),
     `files.content.read` (open), `files.content.write` (save, create, upload)
