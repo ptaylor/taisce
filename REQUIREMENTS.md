@@ -43,6 +43,9 @@ Auto save files - there must be no SAVE/CANCEL button.
 
 Add an ability to undo edits up to a configurable limit (P4)
 
+While a file is open, its Markdown source can be copied to the clipboard in one
+action, including edits that have not been saved yet.
+
 Inline formatting must be reachable from the keyboard while a block is being
 edited, without a toolbar: a shortcut wraps the selection, or with nothing
 selected opens the delimiters and leaves the caret between them so typing

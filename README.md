@@ -65,6 +65,9 @@ the app is a static site, and it talks to the Dropbox API directly from your bro
 - **Undo, without a Save button.** The round buttons at the bottom right (or
   Cmd/Ctrl+Z) step back through block edits; how many steps are kept is a
   setting. Undo survives the autosave, because it writes like any other edit.
+- **Copy the Markdown.** The copy button beside Share puts the whole note's
+  source on the clipboard — the text as it stands, including an edit still
+  waiting to autosave — ready to paste into another editor.
 - **Paste a picture** into a note: it is uploaded to an `_assets` folder beside
   the note and linked in relatively, so the note still renders in any other
   Markdown editor. **Tap a picture** to view it full size or delete it — deleting

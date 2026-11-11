@@ -1689,6 +1689,18 @@ async function boot() {
     trackEvent('share-open');
     void openShare();
   });
+  $('#copy').addEventListener('click', async () => {
+    if (!state.file) return;
+    // The editor's text is the file as it stands, including an edit still
+    // waiting for autosave; copying the saved copy would lose the last second
+    // of typing.
+    if (await copyText(editor.text())) {
+      trackEvent('markdown-copy');
+      toast('Markdown copied');
+    } else {
+      toast('Could not copy the Markdown. This browser blocked clipboard access.');
+    }
+  });
   $('#delete').addEventListener('click', () => {
     void deleteFile();
   });

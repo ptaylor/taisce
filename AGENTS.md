@@ -21,8 +21,9 @@ configurable age limit on the stored tokens, folders with
 nesting and breadcrumb navigation, rendered Markdown, source-preserving in-place
 editing with autosave, keyboard formatting (bold, italic, underline,
 strikethrough), interactive task lists, new files and folders, renaming,
-recent files, filename search, undo/redo with a configurable depth, pasted
-images, background `.bak` backups when a note opens, sharing as PDF or Markdown
+recent files, filename search, undo/redo with a configurable depth, copying a
+note's source as Markdown, pasted images, background `.bak` backups when a note
+opens, sharing as PDF or Markdown
 with background republishing of shared PDFs, the `docs/` guide, the icon set and
 `publish.sh` all exist and are tested. The site is live at
 <https://ptaylor.github.io/taisce/>; `./publish.sh` is what puts a new version

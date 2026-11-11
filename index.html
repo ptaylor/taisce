@@ -133,6 +133,13 @@
                 d="M8.8 10.5 15.2 6.8M8.8 13.5 15.2 17.2"/>
         </svg>
       </button>
+      <button id="copy" class="tool-btn" type="button" aria-label="Copy this file as Markdown">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+          <rect x="9" y="9" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" d="M15 9V6a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3"/>
+        </svg>
+      </button>
       <button id="rename" class="tool-btn" type="button" aria-label="Rename this file">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
           <path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
@@ -346,10 +353,13 @@
     <code>&lt;u&gt;…&lt;/u&gt;</code>.</p>
   <p>There is no Save button: edits save by themselves, about a second after you stop typing. Leave a block to see it rendered again.</p>
   <p>Type <code>/</code> at the start of a line for templates — task list, code block, table, quote and more. Keep typing to filter, then Enter.</p>
-  <h3>Undo and pictures</h3>
+  <h3>Undo, pictures and copying</h3>
   <ul>
     <li><strong>Undo</strong> sits at the bottom right while a note is open
       (⌘Z / Ctrl+Z on a keyboard, shift for redo). One step per block edit.</li>
+    <li><strong>Copy</strong> (the copy button beside Share) puts the whole
+      note's Markdown on the clipboard, including an edit still waiting to save,
+      ready to paste into another editor.</li>
     <li><strong>Paste a picture</strong> into a note: it uploads to the
       <code>_assets</code> folder beside the note and links itself in.</li>
     <li><strong>Tap a picture</strong> to see it full size (<em>View</em>) or

@@ -35,7 +35,7 @@ The Taisce event vocabulary read here is the one documented in AGENTS.md:
               open-from-recent open-from-search
   search      search search-empty
   editor      template-insert task-toggle image-paste image-open image-delete
-              undo redo
+              undo redo markdown-copy
   links       link-open link-change link-remove link-copy link-go link-paste
   share       share-open share-copy share-send share-auto
   settings    settings-open settings-save help-open recent-toggle installed
@@ -332,7 +332,7 @@ FILE_EVENTS = (
 SEARCH_EVENTS = ("search", "search-empty")
 EDITOR_EVENTS = (
     "template-insert", "task-toggle", "image-paste", "image-open", "image-delete",
-    "undo", "redo",
+    "undo", "redo", "markdown-copy",
 )
 LINK_EVENTS = (
     "link-open", "link-change", "link-remove", "link-copy", "link-go", "link-paste",
