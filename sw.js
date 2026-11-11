@@ -1,4 +1,4 @@
-const CACHE = 'taisce-v0.32';
+const CACHE = 'taisce-v0.33';
 const SHELL = [
   './',
   './index.html',
@@ -27,6 +27,7 @@ const SHELL = [
   './js/templates.js',
   './js/theme-boot.js',
   './js/theme.js',
+  './js/tokens.js',
   './js/ui.js',
   './vendor/count.js',
   './vendor/fonts/caveat-600.woff2',

@@ -1,7 +1,8 @@
 import { APP_CONFIG } from './js/config.js';
 import { DropboxProvider } from './js/dropbox.js';
 import { createMockProvider } from './js/mock.js';
-import { completeSignIn, isSignedIn, redirectUri, startSignIn } from './js/auth.js';
+import { completeSignIn, isSignedIn, redirectUri, sessionState, startSignIn, store } from './js/auth.js';
+import { tokenAgeDays, tokenExpired, TOKEN_AGE_KEY } from './js/tokens.js';
 import { createSaveEngine } from './js/save.js';
 import { createBackupWriter } from './js/backup.js';
 import { createEditor } from './js/editor.js';
@@ -74,6 +75,7 @@ const state = {
   recentMax: recentCount(localStorage.getItem(RECENT_KEY)),
   recentsOpen: recentsOpen(localStorage.getItem(RECENTS_OPEN_KEY)),
   undoMax: undoLimit(localStorage.getItem(UNDO_KEY)),
+  tokenDays: tokenAgeDays(localStorage.getItem(TOKEN_AGE_KEY)),
   theme: themeChoice(localStorage.getItem(THEME_KEY)),
   shareFormat: shareFormatChoice(localStorage.getItem(SHARE_FORMAT_KEY)),
   sharedPdfs: parseShareRecords(localStorage.getItem(SHARE_RECORDS_KEY)),
@@ -314,7 +316,7 @@ async function uploadPastedImage(file) {
   }
 }
 
-function showAuth() {
+function showAuth(note = '') {
   // Losing the token can happen while a read is in flight. The auth screen is
   // now the screen: stop the stale navigation, own the busy overlay (its
   // finally will no longer hide it), and record the screen so Back has a
@@ -324,6 +326,11 @@ function showAuth() {
   hideBusy();
   setTitle('Taisce');
   setStatus('ready');
+  const explanation = $('#auth-note');
+  if (explanation) {
+    explanation.textContent = note;
+    explanation.hidden = !note;
+  }
   setScreen('auth');
 }
 
@@ -1471,19 +1478,10 @@ async function deletePictures(paths) {
   return failed;
 }
 
-async function disconnect() {
-  const ok = await ask({ title: `${provider.disconnectLabel}?`, body: provider.disconnectBody, ok: provider.disconnectLabel });
-  if (!ok) return;
-  if ($('#settings').open) $('#settings').close();
-
+async function teardownSession({ flush = true } = {}) {
   cancelAutoPublish();
-  await engine.flush();
+  if (flush) await engine.flush();
   engine.close();
-  try {
-    await provider.disconnect();
-  } catch {
-    // Local sign-out is what matters.
-  }
   state.entries = [];
   state.file = null;
   state.dir = '';
@@ -1492,6 +1490,23 @@ async function disconnect() {
   saveShareRecords({ replace: true });
   for (const url of imageUrls.values()) if (url) URL.revokeObjectURL(url);
   imageUrls.clear();
+}
+
+function expiredNote() {
+  return `For safety, this device forgets a stored sign-in after ${state.tokenDays} days. Connect again to continue.`;
+}
+
+async function disconnect() {
+  const ok = await ask({ title: `${provider.disconnectLabel}?`, body: provider.disconnectBody, ok: provider.disconnectLabel });
+  if (!ok) return;
+  if ($('#settings').open) $('#settings').close();
+
+  await teardownSession();
+  try {
+    await provider.disconnect();
+  } catch {
+    // Local sign-out is what matters.
+  }
 
   if (MOCK) {
     // Re-seed the demo rather than offering a real sign-in.
@@ -1548,6 +1563,7 @@ function countSearch() {
 function openSettings() {
   $('#recent-count').value = String(state.recentMax);
   $('#undo-limit').value = String(state.undoMax);
+  $('#token-days').value = String(state.tokenDays);
   for (const input of document.querySelectorAll('input[name="theme"]')) {
     input.checked = input.value === state.theme;
   }
@@ -1558,10 +1574,29 @@ function openSettings() {
   setTimeout(() => $('#recent-count').focus(), 60);
 }
 
-function saveSettings(event) {
+async function saveSettings(event) {
   event.preventDefault();
+  const nextDays = tokenAgeDays($('#token-days').value);
+
+  // Lowering the limit below the age of the current sign-in retires it at
+  // once. That is a sign-out, so it asks first rather than letting a form save
+  // throw the reader out of an unsaved note.
+  const expiresNow = Boolean(store.refresh) && tokenExpired(store.savedAt, Date.now(), nextDays);
+  if (expiresNow) {
+    const ok = await ask({
+      title: `Forget this sign-in now?`,
+      body:
+        `This sign-in is older than ${nextDays} days. Saving will remove the Dropbox ` +
+        'tokens from this device and ask you to connect again; unsaved edits will be lost.',
+      ok: 'Sign out now',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+
   state.recentMax = recentCount($('#recent-count').value);
   state.undoMax = undoLimit($('#undo-limit').value);
+  state.tokenDays = nextDays;
   const nextTheme = themeChoice(document.querySelector('input[name="theme"]:checked')?.value);
   if (nextTheme !== state.theme) trackEvent(`theme-${nextTheme}`);
   state.theme = nextTheme;
@@ -1572,6 +1607,7 @@ function saveSettings(event) {
   state.shareFormat = nextFormat;
   localStorage.setItem(RECENT_KEY, String(state.recentMax));
   localStorage.setItem(UNDO_KEY, String(state.undoMax));
+  localStorage.setItem(TOKEN_AGE_KEY, String(state.tokenDays));
   localStorage.setItem(THEME_KEY, state.theme);
   localStorage.setItem(SHARE_FORMAT_KEY, state.shareFormat);
   editor.setUndoLimit(state.undoMax);
@@ -1579,6 +1615,19 @@ function saveSettings(event) {
   updateShareButton();
   trackEvent('settings-save');
   $('#settings').close();
+
+  if (expiresNow) {
+    // The tokens still exist here; ask Dropbox to revoke them on the way out.
+    await teardownSession({ flush: false });
+    try {
+      await provider.disconnect();
+    } catch {
+      // Local sign-out is what matters.
+    }
+    showAuth(expiredNote());
+    return;
+  }
+
   if (!$('#screen-list').hidden) renderList();
 }
 
@@ -1778,9 +1827,12 @@ async function boot() {
   }
 
   try {
+    // Read the state before isSignedIn() retires an aged-out sign-in: once the
+    // store is empty there is no way to tell why the connect screen is shown.
+    const wasExpired = sessionState() === 'expired';
     const signedIn = (await completeSignIn(APP_CONFIG.appKey)) || isSignedIn();
     if (signedIn) await loadList('');
-    else showAuth();
+    else showAuth(wasExpired ? expiredNote() : '');
   } catch (error) {
     toast(error.message || 'Sign-in failed');
     showAuth();
